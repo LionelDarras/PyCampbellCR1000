@@ -1,4 +1,3 @@
-recursive-include pyvantagepro/tests/resources *
 recursive-include docs *
 prune docs/_build
 include AUTHORS.rst
