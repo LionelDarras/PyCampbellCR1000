@@ -1,0 +1,10 @@
+recursive-include pyvantagepro/tests/resources *
+recursive-include docs *
+prune docs/_build
+include AUTHORS.rst
+include CHANGES.rst
+include README.rst
+include COPYING
+include Makefile
+include pytest.ini
+include tox.ini
