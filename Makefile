@@ -1,8 +1,10 @@
+SHELL := /bin/bash
+
 # these files should pass pyflakes
 # exclude ./env/, which may contain virtualenv packages
-PYFLAKES_WHITELIST=$(/bin/bash find . -name "*.py" ! -path "./docs/*" \
+PYFLAKES_WHITELIST=$(shell find . -name "*.py" ! -path "./docs/*" \
                     ! -path "./.tox/*" ! -path "./pycr1000/__init__.py" \
-                    ! -path "./pycr1000/compat.py")
+                    ! -path "./pycr1000/compat.py" ! -path "./env/*")
 
 env:
 	rm ./env -fr
@@ -18,7 +20,7 @@ pyflakes:
 	pyflakes ${PYFLAKES_WHITELIST}
 
 pep:
-	pep8 --first pyvantagepro
+	pep8 --first pycr1000
 
 doc:
 	cd docs; make html
