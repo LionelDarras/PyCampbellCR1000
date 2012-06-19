@@ -1,14 +1,14 @@
 # coding: utf8
-"""
+'''
     pycr1000.compat
     ---------------
 
     Workarounds for compatibility with Python 2 and 3 in the same code base.
 
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
-    :license: BSD, see LICENSE for details.
+    :license: GNU GPL v3.
 
-"""
+'''
 
 import sys
 
@@ -66,6 +66,9 @@ if is_py2:
             return bytes('')
         return bytes(string[0])
 
+    ord = ord
+    chr = chr
+
     bytes = str
     str = unicode
     stdout = sys.stdout
@@ -80,6 +83,9 @@ elif is_py3:
         if len(string) == 0:
             return str('')
         return str(string[0])
+
+    ord = lambda x: x
+    chr = lambda x: bytes([x])
 
     str = str
     bytes = bytes

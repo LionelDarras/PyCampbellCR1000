@@ -6,7 +6,7 @@
     The public API and command-line interface to PyVPDriver.
 
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
-    :license: BSD, see LICENSE for details.
+    :license: GNU GPL v3.
 
 '''
 import os

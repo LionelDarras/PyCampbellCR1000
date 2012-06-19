@@ -4,16 +4,31 @@
     --------------
 
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
-    :license: BSD, see LICENSE for details.
+    :license: GNU GPL v3.
 
 '''
 from __future__ import unicode_literals
 import sys
 import time
+import functools
 import csv
 import binascii
 
 from .compat import to_char, str, bytes, StringIO, is_py3
+
+
+class Singleton(object):
+    '''Signleton class , only one obejct of this type can be created
+    any class derived from it will be Singleton.
+    Stolen from:
+    http://code.activestate.com/recipes/519627-singleton-base-class/'''
+    __instance = None
+    def __new__(typ, *args, **kwargs):
+        if Singleton.__instance == None:
+            obj = object.__new__(typ, *args, **kwargs)
+            Singleton.__instance = obj
+
+        return Singleton.__instance
 
 
 def is_text(data):
@@ -27,7 +42,7 @@ def is_bytes(data):
 
 
 class cached_property(object):
-    """A decorator that converts a function into a lazy property.  The
+    '''A decorator that converts a function into a lazy property.  The
     function wrapped is called the first time to retrieve the result
     and then that calculated result is used the next time you access
     the value::
@@ -43,7 +58,7 @@ class cached_property(object):
     work.
     Stolen from:
     https://raw.github.com/mitsuhiko/werkzeug/master/werkzeug/utils.py
-    """
+    '''
 
     def __init__(self, func, name=None, doc=None, writeable=False):
         if writeable:
