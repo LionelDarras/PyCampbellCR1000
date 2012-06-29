@@ -253,7 +253,7 @@ class Dict(object):
 
         >>> mydict = Dict({"name":"foo", "firstname":"bar", "age":1})
         >>> mydict.filter(['age', 'name'])
-        sorteddict({'age': 1, 'name': 'foo'})
+        {'age': 1, 'name': 'foo'}
         '''
         data = self.store.copy()
         unused_keys = set(data.keys()) - set(keys)

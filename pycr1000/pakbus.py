@@ -11,6 +11,7 @@
 
 '''
 from __future__ import division, unicode_literals
+
 import struct
 import string
 
@@ -104,7 +105,7 @@ class Pakbus(object):
             j = sig
             sig = (sig <<1) & 0x1FF
             if sig >= 0x100: sig += 1
-            sig = ((((sig + (j >>8) + x) & 0xFF) | (j <<8))) & 0xFFFF
+            sig = ((((sig + (j >>8) + x) & 0xFF) | (j << 8))) & 0xFFFF
         return sig
 
     def compute_signatur_nullifier(self, sig):
@@ -115,7 +116,7 @@ class Pakbus(object):
             sig = self.compute_signature(nulb, sig)
             sig2 = (sig<<1) & 0x1FF
             if sig2 >= 0x100: sig2 += 1
-            nulb = chr((0x100 - (sig2 + (sig >>8))) & 0xFF)
+            nulb = chr((0x100 - (sig2 + (sig >> 8))) & 0xFF)
             nullif += nulb
         return nullif
 
@@ -131,9 +132,7 @@ class Pakbus(object):
         packet = packet.replace(b'\xBC\xDC', b'\xBC')
         return packet
 
-    #
-    #
-    def get_hello_cmd(DstNodeId, SrcNodeId, IsRouter = 0x00, HopMetric = 0x02, VerifyIntv = 1800):
+    def get_hello_cmd(self, dest_node, src_node):
         '''Create Hello Command packet.'''
         transac_id = self.transaction.next_id()
         hdr = PakBus_hdr(dest_node, src_node, 0x0, 0x1, self.RING)
@@ -177,41 +176,29 @@ class Pakbus(object):
 
         return msg
 
-    def wait_packet(self, dest_node, src_node):
-        # Loop until timeout is reached
-        while time.time() < max_time:
-            s.settimeout(timeout)
-            try:
-                rcv = recv(s)
-            except socket.timeout:
-                rcv = ''
-            hdr, msg = decode_pkt(rcv)
+    def wait_packet(self, dest_node, src_node, transac_id):
+        data = self.read()
+        hdr, msg = self.decode_pkt(data)
+        if hdr == {} or msg == {}:
+            return hdr, msg
 
-            # ignore packets that are not for us
-            if hdr['DstNodeId'] != DstNodeId or hdr['SrcNodeId'] != SrcNodeId:
-                continue
+        # ignore packets that are not for us
+        if hdr['DstNodeId'] != dest_node or hdr['SrcNodeId'] != src_node:
+            return {}, {}
 
-            # Respond to incoming hello command packets
-            if msg['MsgType'] == 0x09:
-                pkt = pkt_hello_response(hdr['SrcNodeId'], hdr['DstNodeId'], msg['TranNbr'])
-                send(s, pkt)
-                continue
+        # Respond to incoming hello command packets
+        if msg['MsgType'] == 0x09:
+            pkt = self.get_hello_response(hdr['SrcNodeId'], hdr['DstNodeId'],
+                                          msg['TranNbr'])
+            self.send(pkt)
+            return self.wait_packet(dest_node, src_node)
 
-            # Handle "please wait" packets
-            if msg['TranNbr'] == TranNbr and msg['MsgType'] == 0xa1:
-                timeout = msg['WaitSec']
-                max_time += timeout
-                continue
+        # Handle "please wait" packets
+        if msg['TranNbr'] == transac_id and msg['MsgType'] == 0xa1:
+            timeout = msg['WaitSec']
+            time.sleep(timeout)
+            return self.wait_packet(dest_node, src_node)
 
-            # this should be the packet we are waiting for
-            if msg['TranNbr'] == TranNbr:
-                break
-
-        else:
-            hdr = {}
-            msg = {}
-
-        # restore previous timeout setting
-        s.settimeout(s_timeout)
-
-        return hdr, msg
+        # this should be the packet we are waiting for
+        if msg['TranNbr'] == transac_id:
+            return hdr, msg
