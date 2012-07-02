@@ -10,7 +10,6 @@
 from __future__ import unicode_literals
 import sys
 import time
-import functools
 import csv
 import binascii
 

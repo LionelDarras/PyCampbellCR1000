@@ -10,13 +10,10 @@
 
 '''
 from __future__ import division, unicode_literals
-import struct
-from datetime import datetime, timedelta
+
 from pylink import link_from_url
 
 from .logger import LOGGER
-from .utils import (cached_property, retry, bytes_to_hex,
-                    ListDict, is_bytes)
 
 
 class NoDeviceException(Exception):
@@ -52,3 +49,15 @@ class CR1000(object):
     def __init__(self, url):
         self.link = link_from_url(url)
         self.link.open()
+        LOGGER.info("init CR1000")
+
+    @classmethod
+    def from_url(cls, url, timeout=10):
+        ''' Get device from url.
+
+        :param url: A `PyLink` connection URL.
+        :param timeout: Set a read timeout value.
+        '''
+        link = link_from_url(url)
+        link.settimeout(timeout)
+        return cls(link)

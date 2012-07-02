@@ -9,7 +9,6 @@
     :license: GNU GPL v3.
 
 '''
-import os
 import argparse
 
 from datetime import datetime
@@ -17,7 +16,8 @@ from datetime import datetime
 # Make sure the logger is configured early:
 from . import VERSION
 from .logger import active_logger
-from .compat import stdout
+#from .compat import stdout
+
 
 NOW = datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -25,14 +25,15 @@ NOW = datetime.now().strftime("%Y-%m-%d %H:%M")
 def main():
     '''Parse command-line arguments and execute CR1000 command.'''
     parser = argparse.ArgumentParser(prog='pycr1000',
-                        description='CR1000 communication tools')
+                                     description='CR1000 communication tools')
 
     parser.add_argument('--version', action='version',
                         version='PyCR1000 version %s' % VERSION,
                         help='Print PyCR1000’s version number and exit.')
 
     args = parser.parse_args()
-
+    if args.debug:
+        active_logger()
 
 if __name__ == '__main__':
     main()

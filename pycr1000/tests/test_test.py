@@ -10,12 +10,8 @@
 
 '''
 from __future__ import unicode_literals
-from datetime import datetime
-import struct
-
 
 from ..logger import active_logger
-from ..utils import hex_to_bytes
 
 
 # active logging for tests
