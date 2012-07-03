@@ -7,16 +7,19 @@
 
     Original Authors: Dietrich Feist, Max Planck, Jena Germany (PyPak)
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
-    :license: BSD, see LICENSE for details.
+    :license: GNU GPL v3.
 
 '''
 from __future__ import division, unicode_literals
 
 import struct
 import time
+import pdb
 
+from .compat import ord, chr
 #from .logger import LOGGER
 from .utils import Singleton
+from .exceptions import NoDeviceException
 
 
 class Transaction(Singleton):
@@ -25,10 +28,10 @@ class Transaction(Singleton):
     def next_id(self):
         self.id += 1
         self.id &= 0xFF
-        return self._id
+        return self.id
 
 
-class Pakbus(object):
+class PakBus(object):
     '''Inteface for a pakbus client. Defined here are all the
     methods for performing the related request methods.
 
@@ -74,24 +77,28 @@ class Pakbus(object):
         self.link = link
         self.transaction = Transaction()
 
-    def write(self, packet)
+    def write(self, packet):
         '''Send packet over PakBus.'''
         sign = self.compute_signature(packet)
         nullifier = self.compute_signatur_nullifier(sign)
-        frame = self.quote(b"".join((packet, nullifier))
+        frame = self.quote(b"".join((packet, nullifier)))
         self.link.write(b"".join((b'\xBD', frame, b'\xBD')))
 
-    def read(self):
+    def read(self, timeout = 10):
         '''Receive packet over PakBus.'''
         all_bytes = []
         byte = None
+        begin = time.time()
         while byte != b'\xBD':
             # Read until first \xBD frame character
             byte = self.link.read(1)
+            if time.time() - begin > timeout:
+                raise NoDeviceException()
         while byte == b'\xBD':
             # Read unitl first character other than \xBD
             byte = self.link.read(1)
-        while byte != b'\xBD': # Read until next occurence of \xBD character
+        while byte != b'\xBD':
+            # Read until next occurence of \xBD character
             all_bytes.append(byte)
             byte = self.link.read(1)
 
@@ -109,7 +116,7 @@ class Pakbus(object):
         '''Check if remote host is available.'''
         # send hello command and wait for response packet
         packet, transac_id = self.get_hello_cmd(dest_node, src_node)
-        self.send(packet)
+        self.write(packet)
         hdr, msg = self.wait_packet(dest_node, src_node, transac_id)
 
         return msg
@@ -148,7 +155,7 @@ class Pakbus(object):
         :param dest_node: Node ID of the message destination.
         :param src_node: Node ID of the message source
         :param hi_proto: Higher level protocol code (4 bits);
-                     0x0: PakCtrl, 0x1: BMP5
+                         0x0: PakCtrl, 0x1: BMP5
         :param exp_more: Whether client should expect another packet (2 bits)
         :param link_state: Link state (4 bits)
         :param hops: Number of hops to destination (4 bits)
@@ -156,7 +163,7 @@ class Pakbus(object):
         priority = 0x1
         link_state = link_state or self.READY
         # bitwise encoding of header fields
-        hdr = struct.pack('>4H',
+        hdr = struct.pack(str('>4H'),
                           (link_state & 0xF) << 12 | (dest_node & 0xFFF),
                           (exp_more & 0x3) << 14 | (priority & 0x3) << 12
                                                  | (src_node & 0xFFF),
@@ -223,20 +230,27 @@ class Pakbus(object):
             fmt = self.DATATYPE[type_]['fmt']
             size = self.DATATYPE[type_]['size']
 
-            if type_ == 'ASCIIZ': # special handling: nul-terminated string
-                nul = buff.find('\0', offset) # find first '\0' after offset
-                value = buff[offset:nul] # return string without trailing '\0'
+            if type_ == 'ASCIIZ':
+                # special handling: nul-terminated string
+                nul = buff.find('\0', offset)
+                # find first '\0' after offset
+                value = buff[offset:nul]
+                # return string without trailing '\0'
                 size = len(value) + 1
-            elif type_ == 'ASCII': # special handling: fixed-length string
+            elif type_ == 'ASCII':
+                # special handling: fixed-length string
                 size = length
-                value = buff[offset:offset + size] # return fixed-length string
-            elif type_ == 'FP2': # special handling: FP2 floating point number
+                value = buff[offset:offset + size]
+                # return fixed-length string
+            elif type_ == 'FP2':
+                # special handling: FP2 floating point number
                 fp2 = struct.unpack(fmt, buff[offset:offset+size])
                 mant = fp2[0] & 0x1FFF    # mantissa is in bits 1-13
-                exp = fp2[0] >> 13 & 0x3 # exponent is in bits 14-15
+                exp = fp2[0] >> 13 & 0x3  # exponent is in bits 14-15
                 sign = fp2[0] >> 15       # sign is in bit 16
                 value = ((-1)**sign * float(mant) / 10**exp, )
-            else:                # default decoding scheme
+            else:
+                # default decoding scheme
                 value = struct.unpack(fmt, buff[offset:offset+size])
 
             # un-tuple single values
@@ -273,7 +287,7 @@ class Pakbus(object):
             buff.append(enc)
         return b''.join(buff)
 
-    self.decode_packet(self, data)
+    def decode_packet(self, data):
         '''Decode packet.'''
         # pkt: buffer containing unquoted packet, signature nullifier stripped
         # Initialize output variables
@@ -284,7 +298,7 @@ class Pakbus(object):
 
         try:
             # decode PakBus header
-            rawhdr = struct.unpack('>4H', pkt[0:8])  # raw header bits
+            rawhdr = struct.unpack('>4H', data[0:8])  # raw header bits
             hdr['LinkState'] = rawhdr[0] >> 12
             hdr['DstPhyAddr'] = rawhdr[0] & 0x0FFF
             hdr['ExpMoreCode'] = (rawhdr[1] & 0xC000) >> 14
@@ -297,21 +311,28 @@ class Pakbus(object):
 
             # decode default message fields:
             # raw message, message type and transaction number
-            msg['raw'] = pkt[8:]
-            decode_values = decode_bin(('Byte', 'Byte'), msg['raw'][:2])
+            msg['raw'] = data[8:]
+            decode_values = self.decode_bin(('Byte', 'Byte'), msg['raw'][:2])
             (msg['MsgType'], msg['TranNbr']), size = decode_values
         except:
             pass
 
         # try to add fields from known message types
+        if hdr['HiProtoCode'] == 0:
+            if msg['MsgType'] in (0x09, 0x89):
+                return hdr, self.unpack_hello_msg(msg)
+        raise NotImplementedError('No implementation for <%r> packet type'
+                                   % msg['MsgType'])
 
-        try:
-            msg = {
-                # PakBus Control Packets
-                (0, 0x09): msg_hello,
-                (0, 0x89): msg_hello,
-            }[(hdr['HiProtoCode'], msg['MsgType'])](msg)
-        except KeyError:
-            pass # if not listed above
+    def unpack_hello_msg(self, msg):
+        pass
 
-        return hdr, msg
+    def __unicode__(self):
+        name = self.__class__.__name__
+        return "<%s %s>" % (name, self.link)
+
+    def __str__(self):
+        return str(self.__unicode__())
+
+    def __repr__(self):
+        return str(self.__unicode__())
