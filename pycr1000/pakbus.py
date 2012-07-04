@@ -73,15 +73,18 @@ class PakBus(object):
     FINISHED = 0xB
     PAUSE = 0xC
 
-    def __init__(self, link):
+    def __init__(self, link, dest_node=0x001, src_node=0x802,
+                       security_code=0x0000):
         self.link = link
+        self.src_node=0x802
+        self.dest_node=0x001
         self.security_code = 0x0000
         self.transaction = Transaction()
 
     def write(self, packet):
         '''Send packet over PakBus.'''
         sign = self.compute_signature(packet)
-        nullifier = self.compute_signatur_nullifier(sign)
+        nullifier = self.compute_signature_nullifier(sign)
         frame = self.quote(b"".join((packet, nullifier)))
         self.link.write(b"".join((b'\xBD', frame, b'\xBD')))
 
@@ -113,24 +116,16 @@ class PakBus(object):
             # Strip last 2 signature bytes and return packet
             return packet[:-2]
 
-    def ping_node(self, dest_node, src_node):
-        '''Check if remote host is available.'''
-        # send hello command and wait for response packet
-        packet, transac_id = self.get_hello_cmd(dest_node, src_node)
-        self.write(packet)
-        # wait response packet
-        hdr, msg = self.wait_packet(src_node, dest_node, transac_id)
-
-        return msg
-
-    def wait_packet(self, dest_node, src_node, transac_id):
+    def wait_packet(self, transac_id):
+        '''Wait for an incoming packet.'''
         data = self.read()
         hdr, msg = self.decode_packet(data)
         if hdr == {} or msg == {}:
             return {}, {}
 
         # ignore packets that are not for us
-        if hdr['DstNodeId'] != dest_node or hdr['SrcNodeId'] != src_node:
+        if (hdr['DstNodeId'] != self.src_node
+            or hdr['SrcNodeId'] != self.dest_node):
             return {}, {}
 
         # Respond to incoming hello command packets
@@ -138,24 +133,22 @@ class PakBus(object):
             pkt = self.get_hello_response(hdr['SrcNodeId'], hdr['DstNodeId'],
                                           msg['TranNbr'])
             self.send(pkt)
-            return self.wait_packet(dest_node, src_node, transac_id)
+            return self.wait_packet(transac_id)
 
         # Handle "please wait" packets
         if msg['TranNbr'] == transac_id and msg['MsgType'] == 0xa1:
             timeout = msg['WaitSec']
             time.sleep(timeout)
-            return self.wait_packet(dest_node, src_node, transac_id)
+            return self.wait_packet(transac_id)
 
-        # this should be the packet we are waiting for
+        # This should be the packet we are waiting for
         if msg['TranNbr'] == transac_id:
             return hdr, msg
 
-    def pack_header(self, dest_node, src_node, hi_proto, exp_more = 0x2,
-                    link_state = None, hops = 0x0):
+    def pack_header(self, hi_proto, exp_more = 0x2, link_state = None,
+                    hops = 0x0):
         '''Generate PakBus header.
 
-        :param dest_node: Node ID of the message destination.
-        :param src_node: Node ID of the message source
         :param hi_proto: Higher level protocol code (4 bits);
                          0x0: PakCtrl, 0x1: BMP5
         :param exp_more: Whether client should expect another packet (2 bits)
@@ -166,11 +159,11 @@ class PakBus(object):
         link_state = link_state or self.READY
         # bitwise encoding of header fields
         hdr = struct.pack(str('>4H'),
-                          (link_state & 0xF) << 12 | (dest_node & 0xFFF),
+                          (link_state & 0xF) << 12 | (self.dest_node & 0xFFF),
                           (exp_more & 0x3) << 14 | (priority & 0x3) << 12
-                                                 | (src_node & 0xFFF),
-                          (hi_proto & 0xF) << 12 | (dest_node & 0xFFF),
-                          (hops & 0xF) << 12 | (src_node & 0xFFF))
+                                                 | (self.src_node & 0xFFF),
+                          (hi_proto & 0xF) << 12 | (self.dest_node & 0xFFF),
+                          (hops & 0xF) << 12 | (self.src_node & 0xFFF))
         return hdr
 
     def compute_signature(self, buff, seed = 0xAAAA):
@@ -184,7 +177,7 @@ class PakBus(object):
             sig = ((((sig + (j >>8) + x) & 0xFF) | (j << 8))) & 0xFFFF
         return sig
 
-    def compute_signatur_nullifier(self, sig):
+    def compute_signature_nullifier(self, sig):
         '''Calculate signature nullifier needed to create valid PakBus
         packets.'''
         nulb = nullif = b''
@@ -210,8 +203,8 @@ class PakBus(object):
 
     def decode_bin(self, types, buff, length = 1):
         '''Decode binary data according to data type.'''
-        offset = 0 # offset into buffer
-        values = [] # list of values to return
+        offset = 0  # offset into buffer
+        values = []  # list of values to return
         for type_ in types:
             # get default format and size for Type
             fmt = self.DATATYPE[type_]['fmt']
@@ -322,9 +315,9 @@ class PakBus(object):
                          [0x09, transac_id, 0x00, 0x02, 1800])
         return b''.join((hdr, msg)), transac_id
 
-    def get_hello_response(self, dest_node, src_node, transac_id):
+    def get_hello_response(self, transac_id):
         '''Create Hello Response packet.'''
-        hdr = self.pack_header(dest_node, src_node, 0x0)
+        hdr = self.pack_header(0x0)
         msg = self.encode_bin(['Byte', 'Byte', 'Byte', 'Byte', 'UInt2'],
                          [0x89, transac_id, 0x00, 0x02, 1800])
         return b''.join([hdr, msg])
@@ -336,14 +329,14 @@ class PakBus(object):
         msg['IsRouter'], msg['HopMetric'], msg['VerifyIntv'] = values
         return msg
 
-    def get_clock_cmd(self, dest_node, src_node, adjustment = (0, 0)):
+    def get_clock_cmd(self, adjustment = (0, 0)):
         '''Create Clock Command packet.
 
         :param adjustment: Clock adjustment (seconds, nanoseconds).
         '''
         transac_id = self.transaction.next_id()
         # BMP5 Application Packet
-        hdr = self.pack_header(dest_node, src_node, 0x1)
+        hdr = self.pack_header(0x1)
         msg = self.encode_bin(['Byte', 'Byte', 'UInt2', 'NSec'],
                               [0x17, transac_id, self.security_code,
                                adjustment])
