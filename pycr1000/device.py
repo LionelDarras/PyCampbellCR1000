@@ -10,14 +10,14 @@
 
 '''
 from __future__ import division, unicode_literals
-
-from pylink import link_from_url
 import calendar
 
 from datetime import datetime
+from pylink import link_from_url
 
 from .logger import LOGGER
 from .pakbus import PakBus
+
 
 class CR1000(object):
     '''Communicates with the datalogger by sending commands, reads the binary
@@ -31,6 +31,8 @@ class CR1000(object):
         self.pakbus = PakBus(link, dest_node, src_node)
         self.nsec_base = calendar.timegm((1990, 1, 1, 0, 0, 0))
         self.nsec_tick = 1E-9
+        LOGGER.info("Get device attention")
+        self.pakbus.link.write(b'\xBD\xBD\xBD\xBD\xBD\xBD')
         LOGGER.info("init CR1000")
 
     @classmethod
@@ -47,14 +49,14 @@ class CR1000(object):
     def ping_node(self):
         '''Check if remote host is available.'''
         # send hello command and wait for response packet
-        packet, transac_id = self.get_hello_cmd()
+        packet, transac_id = self.pakbus.get_hello_cmd()
         self.pakbus.write(packet)
         # wait response packet
         hdr, msg = self.pakbus.wait_packet(transac_id)
         return msg
 
     def gettime(self):
-        packet, transac_id = self.get_clock_cmd()
+        packet, transac_id = self.pakbus.get_clock_cmd()
         self.pakbus.write(packet)
         # wait response packet
         hdr, msg = self.pakbus.wait_packet(transac_id)
@@ -62,3 +64,17 @@ class CR1000(object):
         timestamp = self.nsec_base + msg['Time'][0]
         timestamp += msg['Time'][1] * self.nsec_tick
         return datetime.fromtimestamp(timestamp)
+
+    def settime(self, dtime):
+        current_time = self.gettime()
+        diff = dtime - current_time
+        diff = diff.days * 86400 + diff.seconds
+        packet, transac_id = self.pakbus.get_clock_cmd((diff, 0))
+        self.pakbus.write(packet)
+        # wait response packet
+        hdr, msg = self.pakbus.wait_packet(transac_id)
+        # Calculate timestamp with fractional seconds
+        timestamp = self.nsec_base + msg['Time'][0]
+        timestamp += msg['Time'][1] * self.nsec_tick
+        return datetime.fromtimestamp(timestamp)
+        return current_time()

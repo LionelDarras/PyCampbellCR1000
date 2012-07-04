@@ -307,10 +307,10 @@ class PakBus(object):
                            % msg['MsgType'])
         return hdr, msg
 
-    def get_hello_cmd(self, dest_node, src_node):
+    def get_hello_cmd(self):
         '''Create Hello Command packet.'''
         transac_id = self.transaction.next_id()
-        hdr = self.pack_header(dest_node, src_node, 0x0, 0x1, self.RING)
+        hdr = self.pack_header(0x0, 0x1, self.RING)
         msg = self.encode_bin(['Byte', 'Byte', 'Byte', 'Byte', 'UInt2'],
                          [0x09, transac_id, 0x00, 0x02, 1800])
         return b''.join((hdr, msg)), transac_id

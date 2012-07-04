@@ -12,8 +12,7 @@
 # Make sure the logger is configured early:
 from .logger import LOGGER, active_logger
 from .pakbus import PakBus
-
-active_logger()
+from .device import CR1000
 
 
 VERSION = '0.1dev'
