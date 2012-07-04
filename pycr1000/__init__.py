@@ -11,6 +11,10 @@
 '''
 # Make sure the logger is configured early:
 from .logger import LOGGER, active_logger
+from .pakbus import PakBus
+
+active_logger()
+
 
 VERSION = '0.1dev'
 __version__ = VERSION

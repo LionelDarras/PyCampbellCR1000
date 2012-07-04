@@ -14,41 +14,18 @@ from __future__ import division, unicode_literals
 from pylink import link_from_url
 
 from .logger import LOGGER
-
-
-class NoDeviceException(Exception):
-    '''Can not access to device.'''
-    value = __doc__
-
-
-class BadAckException(Exception):
-    '''No valid acknowledgement.'''
-    def __str__(self):
-        return self.__doc__
-
-
-class BadCRCException(Exception):
-    '''No valid checksum.'''
-    def __str__(self):
-        return self.__doc__
-
-
-class BadDataException(Exception):
-    '''No valid data.'''
-    def __str__(self):
-        return self.__doc__
-
+from .pakbus import PakBus
 
 class CR1000(object):
     '''Communicates with the datalogger by sending commands, reads the binary
     data and parsing it into usable scalar values.
 
-    :param url: A `PyLink` connection URL.
+    :param url: A `PyLink` connection.
     '''
 
-    def __init__(self, url):
-        self.link = link_from_url(url)
-        self.link.open()
+    def __init__(self, link):
+        link.open()
+        self.pakbus = PakBus(link)
         LOGGER.info("init CR1000")
 
     @classmethod
@@ -61,3 +38,6 @@ class CR1000(object):
         link = link_from_url(url)
         link.settimeout(timeout)
         return cls(link)
+
+    def gettime(self):
+        pass

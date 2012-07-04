@@ -16,8 +16,8 @@ import struct
 import time
 import pdb
 
-from .compat import ord, chr
-#from .logger import LOGGER
+from .compat import ord, chr, bytes
+from .logger import LOGGER
 from .utils import Singleton
 from .exceptions import NoDeviceException
 
@@ -35,7 +35,7 @@ class PakBus(object):
     '''Inteface for a pakbus client. Defined here are all the
     methods for performing the related request methods.
 
-    :param url: A `PyLink` connection URL.
+    :param url: A `PyLink` connection.
     '''
     DATATYPE = {
         'Byte':     {'code':  1, 'fmt': 'B',   'size': 1},
@@ -75,6 +75,7 @@ class PakBus(object):
 
     def __init__(self, link):
         self.link = link
+        self.security_code = 0x0000
         self.transaction = Transaction()
 
     def write(self, packet):
@@ -91,16 +92,16 @@ class PakBus(object):
         begin = time.time()
         while byte != b'\xBD':
             # Read until first \xBD frame character
-            byte = self.link.read(1)
+            byte = bytes(self.link.read(1))
             if time.time() - begin > timeout:
                 raise NoDeviceException()
         while byte == b'\xBD':
             # Read unitl first character other than \xBD
-            byte = self.link.read(1)
+            byte = bytes(self.link.read(1))
         while byte != b'\xBD':
             # Read until next occurence of \xBD character
             all_bytes.append(byte)
-            byte = self.link.read(1)
+            byte = bytes(self.link.read(1))
 
         # Unquote quoted characters
         packet = self.unquote(b"".join(all_bytes))
@@ -117,7 +118,8 @@ class PakBus(object):
         # send hello command and wait for response packet
         packet, transac_id = self.get_hello_cmd(dest_node, src_node)
         self.write(packet)
-        hdr, msg = self.wait_packet(dest_node, src_node, transac_id)
+        # wait response packet
+        hdr, msg = self.wait_packet(src_node, dest_node, transac_id)
 
         return msg
 
@@ -205,21 +207,6 @@ class PakBus(object):
         packet = packet.replace(b'\xBC\xDD', b'\xBD')
         packet = packet.replace(b'\xBC\xDC', b'\xBC')
         return packet
-
-    def get_hello_cmd(self, dest_node, src_node):
-        '''Create Hello Command packet.'''
-        transac_id = self.transaction.next_id()
-        hdr = self.pack_header(dest_node, src_node, 0x0, 0x1, self.RING)
-        msg = self.encode_bin(['Byte', 'Byte', 'Byte', 'Byte', 'UInt2'],
-                         [0x09, transac_id, 0x00, 0x02, 1800])
-        return b''.join((hdr, msg)), transac_id
-
-    def get_hello_response(self, dest_node, src_node, transac_id):
-        '''Create Hello Response packet.'''
-        hdr = self.pack_header(dest_node, src_node, 0x0)
-        msg = self.encode_bin(['Byte', 'Byte', 'Byte', 'Byte', 'UInt2'],
-                         [0x89, transac_id, 0x00, 0x02, 1800])
-        return b''.join([hdr, msg])
 
     def decode_bin(self, types, buff, length = 1):
         '''Decode binary data according to data type.'''
@@ -312,20 +299,61 @@ class PakBus(object):
             # decode default message fields:
             # raw message, message type and transaction number
             msg['raw'] = data[8:]
-            decode_values = self.decode_bin(('Byte', 'Byte'), msg['raw'][:2])
-            (msg['MsgType'], msg['TranNbr']), size = decode_values
+            values, size = self.decode_bin(('Byte', 'Byte'), msg['raw'][:2])
+            msg['MsgType'], msg['TranNbr'] = values
         except:
             pass
 
         # try to add fields from known message types
-        if hdr['HiProtoCode'] == 0:
-            if msg['MsgType'] in (0x09, 0x89):
-                return hdr, self.unpack_hello_msg(msg)
-        raise NotImplementedError('No implementation for <%r> packet type'
-                                   % msg['MsgType'])
+        if hdr['HiProtoCode'] == 0 and msg['MsgType'] in (0x09, 0x89):
+            msg = self.unpack_hello_response(msg)
+        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x97:
+            msg = self.unpack_clock_response(msg)
+        else:
+            LOGGER.error('No implementation for <%r> packet type'
+                           % msg['MsgType'])
+        return hdr, msg
 
-    def unpack_hello_msg(self, msg):
-        pass
+    def get_hello_cmd(self, dest_node, src_node):
+        '''Create Hello Command packet.'''
+        transac_id = self.transaction.next_id()
+        hdr = self.pack_header(dest_node, src_node, 0x0, 0x1, self.RING)
+        msg = self.encode_bin(['Byte', 'Byte', 'Byte', 'Byte', 'UInt2'],
+                         [0x09, transac_id, 0x00, 0x02, 1800])
+        return b''.join((hdr, msg)), transac_id
+
+    def get_hello_response(self, dest_node, src_node, transac_id):
+        '''Create Hello Response packet.'''
+        hdr = self.pack_header(dest_node, src_node, 0x0)
+        msg = self.encode_bin(['Byte', 'Byte', 'Byte', 'Byte', 'UInt2'],
+                         [0x89, transac_id, 0x00, 0x02, 1800])
+        return b''.join([hdr, msg])
+
+    def unpack_hello_response(self, msg):
+        '''Unpack Hello Response packet.'''
+        raw = msg['raw'][2:]
+        values, size = self.decode_bin(['Byte', 'Byte', 'UInt2'], raw)
+        msg['IsRouter'], msg['HopMetric'], msg['VerifyIntv'] = values
+        return msg
+
+    def get_clock_cmd(self, dest_node, src_node, adjustment = (0, 0)):
+        '''Create Clock Command packet.
+
+        :param adjustment: Clock adjustment (seconds, nanoseconds).
+        '''
+        transac_id = self.transaction.next_id()
+        # BMP5 Application Packet
+        hdr = self.pack_header(dest_node, src_node, 0x1)
+        msg = self.encode_bin(['Byte', 'Byte', 'UInt2', 'NSec'],
+                              [0x17, transac_id, self.security_code,
+                               adjustment])
+        return b''.join((hdr, msg)), transac_id
+
+    def unpack_clock_response(self, msg):
+        '''Unpack Clock Response packet.'''
+        values, size = self.decode_bin(['Byte', 'NSec'],  msg['raw'][2:])
+        msg['RespCode'], msg['Time'] = values
+        return msg
 
     def __unicode__(self):
         name = self.__class__.__name__
