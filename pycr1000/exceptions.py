@@ -17,14 +17,8 @@ class NoDeviceException(Exception):
     value = __doc__
 
 
-class BadAckException(Exception):
-    '''No valid acknowledgement.'''
-    def __str__(self):
-        return self.__doc__
-
-
-class BadCRCException(Exception):
-    '''No valid checksum.'''
+class BadSignatureException(Exception):
+    '''No valid signature.'''
     def __str__(self):
         return self.__doc__
 

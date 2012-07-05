@@ -17,7 +17,8 @@ from pylink import link_from_url
 
 from .logger import LOGGER
 from .pakbus import PakBus
-
+from .exceptions import NoDeviceException, BadDataException
+from .utils import retry
 
 class CR1000(object):
     '''Communicates with the datalogger by sending commands, reads the binary
@@ -25,14 +26,17 @@ class CR1000(object):
 
     :param url: A `PyLink` connection.
     '''
+    nsec_base = calendar.timegm((1990, 1, 1, 0, 0, 0))
+    nsec_tick = 1E-9
+    connected = False
 
     def __init__(self, link, dest_node=0x001, src_node=0x802):
         link.open()
         self.pakbus = PakBus(link, dest_node, src_node)
-        self.nsec_base = calendar.timegm((1990, 1, 1, 0, 0, 0))
-        self.nsec_tick = 1E-9
-        LOGGER.info("Get device attention")
-        self.pakbus.link.write(b'\xBD\xBD\xBD\xBD\xBD\xBD')
+        if self.ping_node():
+            self.connected = True
+        else:
+            raise NoDeviceException()
         LOGGER.info("init CR1000")
 
     @classmethod
@@ -46,35 +50,46 @@ class CR1000(object):
         link.settimeout(timeout)
         return cls(link, dest_node, src_node)
 
+    def send_wait(self, packet, transac_id):
+        '''Send command and wait for response packet.'''
+        self.pakbus.write(packet)
+        # wait response packet
+        return self.pakbus.wait_packet(transac_id)
+        
+    @retry(tries=3, delay=1)
     def ping_node(self):
         '''Check if remote host is available.'''
         # send hello command and wait for response packet
-        packet, transac_id = self.pakbus.get_hello_cmd()
-        self.pakbus.write(packet)
-        # wait response packet
-        hdr, msg = self.pakbus.wait_packet(transac_id)
+        hdr, msg = self.send_wait(self.pakbus.get_hello_cmd())
         return msg
 
-    def gettime(self):
-        packet, transac_id = self.pakbus.get_clock_cmd()
-        self.pakbus.write(packet)
-        # wait response packet
-        hdr, msg = self.pakbus.wait_packet(transac_id)
+    def nsec_to_time(self, nsec):
         # Calculate timestamp with fractional seconds
-        timestamp = self.nsec_base + msg['Time'][0]
-        timestamp += msg['Time'][1] * self.nsec_tick
-        return datetime.fromtimestamp(timestamp)
+        timestamp = self.nsec_base + nsec[0]
+        timestamp += nsec[1] * self.nsec_tick
+        return datetime.fromtimestamp(timestamp)  
+    
+    def gettime(self):
+        '''Returns the current datetime .'''
+        # send clock command and wait for response packet
+        hdr, msg = self.send_wait(self.pakbus.get_clock_cmd())
+        return self.nsec_to_time(msg['Time'])
 
     def settime(self, dtime):
+        '''Set the given `dtime` on the device and return the new current datetime'''
         current_time = self.gettime()
         diff = dtime - current_time
         diff = diff.days * 86400 + diff.seconds
-        packet, transac_id = self.pakbus.get_clock_cmd((diff, 0))
-        self.pakbus.write(packet)
-        # wait response packet
-        hdr, msg = self.pakbus.wait_packet(transac_id)
-        # Calculate timestamp with fractional seconds
-        timestamp = self.nsec_base + msg['Time'][0]
-        timestamp += msg['Time'][1] * self.nsec_tick
-        return datetime.fromtimestamp(timestamp)
-        return current_time()
+        hdr, msg = self.send_wait(self.pakbus.get_clock_cmd((diff, 0)))
+        return self.nsec_to_time(msg['Time'])        
+
+    def bye(self):
+        '''Send bye command.'''
+        if self.connected:
+            packet, transac_id = self.pakbus.get_bye_cmd()
+            self.packbus.write(packet)
+            self.connected = False
+
+    def __del__(self):
+        '''Send bye cmd when object is deleted.'''
+        self.bye()

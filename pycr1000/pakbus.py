@@ -14,17 +14,14 @@ from __future__ import division, unicode_literals
 
 import struct
 import time
-import pdb
 
 from .compat import ord, chr, bytes
 from .logger import LOGGER
 from .utils import Singleton
-from .exceptions import NoDeviceException
 
 
 class Transaction(Singleton):
     id = 0
-
     def next_id(self):
         self.id += 1
         self.id &= 0xFF
@@ -36,6 +33,9 @@ class PakBus(object):
     methods for performing the related request methods.
 
     :param url: A `PyLink` connection.
+    :parm dest_node: Destination node ID (12-bit int)
+    :parm src_node: Source node ID (12-bit int)
+    :parm security_code: 16-bit security code (optional)
     '''
     DATATYPE = {
         'Byte':     {'code':  1, 'fmt': 'B',   'size': 1},
@@ -80,6 +80,8 @@ class PakBus(object):
         self.dest_node=0x001
         self.security_code = 0x0000
         self.transaction = Transaction()
+        LOGGER.info("Get device attention")
+        self.link.write(b'\xBD\xBD\xBD\xBD\xBD\xBD')
 
     def write(self, packet):
         '''Send packet over PakBus.'''
@@ -97,7 +99,7 @@ class PakBus(object):
             # Read until first \xBD frame character
             byte = bytes(self.link.read(1))
             if time.time() - begin > timeout:
-                raise NoDeviceException()
+                return None
         while byte == b'\xBD':
             # Read unitl first character other than \xBD
             byte = bytes(self.link.read(1))
@@ -110,15 +112,19 @@ class PakBus(object):
         packet = self.unquote(b"".join(all_bytes))
         # Calculate signature (should be zero)
         if self.compute_signature(packet):
-            # Error
+            LOGGER.error("Check signature : Error")
             return None
         else:
+            LOGGER.info("Check signature : OK")
             # Strip last 2 signature bytes and return packet
             return packet[:-2]
 
     def wait_packet(self, transac_id):
         '''Wait for an incoming packet.'''
         data = self.read()
+        if data in (None, "", b""):
+            return {}, {}
+
         hdr, msg = self.decode_packet(data)
         if hdr == {} or msg == {}:
             return {}, {}
@@ -347,6 +353,13 @@ class PakBus(object):
         values, size = self.decode_bin(['Byte', 'NSec'],  msg['raw'][2:])
         msg['RespCode'], msg['Time'] = values
         return msg
+
+    def get_bye_cmd(self):
+        transac_id = self.transaction.next_id()
+        # PakBus Control Packet
+        hdr = self.pack_header(0x0, 0x0, 0xB)
+        msg = self.encode_bin(['Byte', 'Byte'], [0x0d, 0x0])
+        return b''.join((hdr, msg)), transac_id
 
     def __unicode__(self):
         name = self.__class__.__name__
