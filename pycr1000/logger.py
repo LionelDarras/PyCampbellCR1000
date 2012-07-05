@@ -23,7 +23,6 @@ def active_logger():
     LOGGER = logging.getLogger('pycr1000')
 
     LOGGER.setLevel(logging.INFO)
-    logging.getLogger('pylink').setLevel(logging.INFO)
 
     # Default to logging to stderr.
     formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s ')
@@ -31,4 +30,3 @@ def active_logger():
     stream_handler.setFormatter(formatter)
 
     LOGGER.addHandler(stream_handler)
-    logging.getLogger('pylink').addHandler(stream_handler)
