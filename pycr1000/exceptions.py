@@ -24,6 +24,12 @@ class BadSignatureException(Exception):
 
 
 class BadDataException(Exception):
-    '''No valid data.'''
+    '''No valid data packet.'''
+    def __str__(self):
+        return self.__doc__
+
+
+class DeliveryFailureException(Exception):
+    '''Delivery failure.'''
     def __str__(self):
         return self.__doc__
