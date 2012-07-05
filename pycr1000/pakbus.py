@@ -18,7 +18,8 @@ import time
 from .compat import ord, chr, bytes
 from .logger import LOGGER
 from .utils import Singleton
-
+from .exceptions import BadDataException, DeliveryFailureException
+from .utils import bytes_to_hex
 
 class Transaction(Singleton):
     id = 0
@@ -74,7 +75,7 @@ class PakBus(object):
     PAUSE = 0xC
 
     def __init__(self, link, dest_node=0x001, src_node=0x802,
-                       security_code=0x0000):
+                 security_code=0x0000):
         self.link = link
         self.src_node=0x802
         self.dest_node=0x001
@@ -85,10 +86,15 @@ class PakBus(object):
 
     def write(self, packet):
         '''Send packet over PakBus.'''
+        LOGGER.info("Packet data: %s" % bytes_to_hex(packet))
+        LOGGER.info('Calculate signature for packet')
         sign = self.compute_signature(packet)
+        LOGGER.info('Calculate signature nullifier to create packet')
         nullifier = self.compute_signature_nullifier(sign)
         frame = self.quote(b"".join((packet, nullifier)))
-        self.link.write(b"".join((b'\xBD', frame, b'\xBD')))
+        packet = b"".join((b'\xBD', frame, b'\xBD'))
+        LOGGER.info("Write: %s" % bytes_to_hex(packet))
+        self.link.write(packet)
 
     def read(self, timeout = 10):
         '''Receive packet over PakBus.'''
@@ -109,7 +115,10 @@ class PakBus(object):
             byte = bytes(self.link.read(1))
 
         # Unquote quoted characters
-        packet = self.unquote(b"".join(all_bytes))
+        packet = b"".join(all_bytes)
+        LOGGER.info("Read packet: %s" % bytes_to_hex(packet))
+        packet = self.unquote(packet)
+
         # Calculate signature (should be zero)
         if self.compute_signature(packet):
             LOGGER.error("Check signature : Error")
@@ -121,8 +130,9 @@ class PakBus(object):
 
     def wait_packet(self, transac_id):
         '''Wait for an incoming packet.'''
+        LOGGER.info('Wait packet with transaction %s' % transac_id)
         data = self.read()
-        if data in (None, "", b""):
+        if data is None or data == b"":
             return {}, {}
 
         hdr, msg = self.decode_packet(data)
@@ -147,6 +157,11 @@ class PakBus(object):
             time.sleep(timeout)
             return self.wait_packet(transac_id)
 
+
+        # Handle failure message packets and raise exception
+        if msg['MsgType'] == 0x81:
+            raise DeliveryFailureException()
+
         # This should be the packet we are waiting for
         if msg['TranNbr'] == transac_id:
             return hdr, msg
@@ -161,6 +176,7 @@ class PakBus(object):
         :param link_state: Link state (4 bits)
         :param hops: Number of hops to destination (4 bits)
         '''
+        LOGGER.info('Create header')
         priority = 0x1
         link_state = link_state or self.READY
         # bitwise encoding of header fields
@@ -197,18 +213,21 @@ class PakBus(object):
 
     def quote(self, packet):
         '''Quote PakBus packet.'''
+        LOGGER.info('Quote packet')
         packet = packet.replace(b'\xBC', b'\xBC\xDC')
         packet = packet.replace(b'\xBD', b'\xBC\xDD')
         return packet
 
     def unquote(self, packet):
         '''Unquote PakBus packet.'''
+        LOGGER.info('Unquote packet')
         packet = packet.replace(b'\xBC\xDD', b'\xBD')
         packet = packet.replace(b'\xBC\xDC', b'\xBC')
         return packet
 
     def decode_bin(self, types, buff, length = 1):
         '''Decode binary data according to data type.'''
+        LOGGER.info('Decode bin values')
         offset = 0  # offset into buffer
         values = []  # list of values to return
         for type_ in types:
@@ -251,9 +270,10 @@ class PakBus(object):
 
     def encode_bin(self, types, values):
         '''Encode binary data according to data type.'''
-        buff = [] # buffer for binary data
+        LOGGER.info('Encode bin values')
+        buff = []  # buffer for binary data
         for i, type_ in enumerate(types):
-            fmt = self.DATATYPE[type_]['fmt'] # get default format for type_
+            fmt = self.DATATYPE[type_]['fmt']  # get default format for type_
             value = values[i]
 
             if type_ == 'ASCIIZ':
@@ -275,6 +295,7 @@ class PakBus(object):
 
     def decode_packet(self, data):
         '''Decode packet.'''
+        LOGGER.info('Decode packet')
         # pkt: buffer containing unquoted packet, signature nullifier stripped
         # Initialize output variables
         hdr = {'LinkState': None, 'DstPhyAddr': None, 'ExpMoreCode': None,
@@ -300,18 +321,44 @@ class PakBus(object):
             msg['raw'] = data[8:]
             values, size = self.decode_bin(('Byte', 'Byte'), msg['raw'][:2])
             msg['MsgType'], msg['TranNbr'] = values
-        except:
-            pass
+        except Exception as e:
+            LOGGER.info('Decode packet error : %s' % e)
+            raise BadDataException()
 
-        # try to add fields from known message types
+        # PakBus Control Packets
         if hdr['HiProtoCode'] == 0 and msg['MsgType'] in (0x09, 0x89):
             msg = self.unpack_hello_response(msg)
+        elif hdr['HiProtoCode'] == 0 and msg['MsgType'] == 0x81:
+            msg = self.unpack_failure_response(msg)
+        # BMP5 Application Packets
+        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x89:
+            msg = self.unpack_collectdata_response(msg)
         elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x97:
             msg = self.unpack_clock_response(msg)
+        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x98:
+            msg = self.unpack_getprogstat_response(msg)
+        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x9a:
+            msg = self.unpack_getvalues_response(msg)
+        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x9c:
+            msg = self.unpack_filedownload_response(msg)
+        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x9d:
+            msg = self.unpack_fileupload_response(msg)
+        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x9e:
+            msg = self.unpack_filecontrol_response(msg)
+        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0xa1:
+            msg = self.unpack_pleasewait_response(msg)
         else:
-            LOGGER.error('No implementation for <%r> packet type'
-                           % msg['MsgType'])
+            LOGGER.error('No implementation for <(%r, %r)> packet type'
+                           % (hdr['HiProtoCode'], msg['MsgType']))
         return hdr, msg
+
+    def get_bye_cmd(self):
+        '''Create Bye Command packet.'''
+        transac_id = self.transaction.next_id()
+        # PakBus Control Packet
+        hdr = self.pack_header(0x0, 0x0, 0xB)
+        msg = self.encode_bin(['Byte', 'Byte'], [0x0d, 0x0])
+        return b''.join((hdr, msg)), transac_id
 
     def get_hello_cmd(self):
         '''Create Hello Command packet.'''
@@ -328,12 +375,17 @@ class PakBus(object):
                          [0x89, transac_id, 0x00, 0x02, 1800])
         return b''.join([hdr, msg])
 
-    def unpack_hello_response(self, msg):
-        '''Unpack Hello Response packet.'''
-        raw = msg['raw'][2:]
-        values, size = self.decode_bin(['Byte', 'Byte', 'UInt2'], raw)
-        msg['IsRouter'], msg['HopMetric'], msg['VerifyIntv'] = values
+    def unpack_failure_response(self, msg):
+        '''Unpack Failure Response packet.'''
+        msg['ErrCode'], size = self.decode_bin(['Byte'], msg['raw'][2:])
         return msg
+
+    def unpack_hello_response(self, transac_id):
+        '''Create Hello Response packet.'''
+        hdr = self.pack_header(0x0)
+        msg = self.encode_bin(['Byte', 'Byte', 'Byte', 'Byte', 'UInt2'],
+                         [0x89, transac_id, 0x00, 0x02, 1800])
+        return b''.join([hdr, msg])
 
     def get_clock_cmd(self, adjustment = (0, 0)):
         '''Create Clock Command packet.
@@ -354,12 +406,35 @@ class PakBus(object):
         msg['RespCode'], msg['Time'] = values
         return msg
 
-    def get_bye_cmd(self):
-        transac_id = self.transaction.next_id()
-        # PakBus Control Packet
-        hdr = self.pack_header(0x0, 0x0, 0xB)
-        msg = self.encode_bin(['Byte', 'Byte'], [0x0d, 0x0])
-        return b''.join((hdr, msg)), transac_id
+    def unpack_pleasewait_reponse(self, msg):
+        '''Unpack Pease Wait Response packet.'''
+        values, size = self.decode_bin(['Byte', 'UInt2'], msg['raw'][2:])
+        msg['CmdMsgType'], msg['WaitSec'] = values
+        return msg
+
+    def unpack_collectdata_reponse(self, msg):
+        '''Unpack Collect data Response packet.'''
+        pass
+
+    def unpack_getprogstat_reponse(self, msg):
+        '''Unpack Get ProgStat Response packet.'''
+        pass
+
+    def unpack_getvalues_reponse(self, msg):
+        '''Unpack Get Values Response packet.'''
+        pass
+
+    def unpack_filedownload_reponse(self, msg):
+        '''Unpack File Download Response packet.'''
+        pass
+
+    def unpack_fileupload_reponse(self, msg):
+        '''Unpack File Upload Response packet.'''
+        pass
+
+    def unpack_filecontrol_reponse(self, msg):
+        '''Unpack File Control Response packet.'''
+        pass
 
     def __unicode__(self):
         name = self.__class__.__name__
