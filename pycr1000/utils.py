@@ -94,7 +94,7 @@ class retry(object):
 
     def __call__(self, f):
         def wrapped_f(*args, **kwargs):
-            for i in range(self.tries):
+            for i in range(self.tries - 1):
                 try:
                     ret = f(*args, **kwargs)
                     if ret:
@@ -102,11 +102,14 @@ class retry(object):
                     elif i == self.tries - 1:
                         return ret
                 except Exception as e:
-                    if i == self.tries - 1:
-                        # last chance
-                        raise e
+                    pass
                 if self.delay > 0:
                     time.sleep(self.delay)
+            ret = f(*args, **kwargs)
+            if ret:
+                return ret
+            elif i == self.tries - 1:
+                return ret
         wrapped_f.__doc__ = f.__doc__
         wrapped_f.__name__ = f.__name__
         wrapped_f.__module__ = f.__module__

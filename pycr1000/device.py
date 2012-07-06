@@ -24,21 +24,34 @@ class CR1000(object):
     '''Communicates with the datalogger by sending commands, reads the binary
     data and parsing it into usable scalar values.
 
-    :param url: A `PyLink` connection.
+    :param link: A `PyLink` connection.
+    :parm dest_node: Destination node ID (12-bit int)
+    :parm src_node: Source node ID (12-bit int)
+    :parm security_code: 16-bit security code (optional)
     '''
     nsec_base = calendar.timegm((1990, 1, 1, 0, 0, 0))
     nsec_tick = 1E-9
     connected = False
 
-    def __init__(self, link, dest_node=0x001, src_node=0x802):
+    def __init__(self, link, dest_node=0x001, src_node=0x802,
+                 security_code=0x0000):
         link.open()
         LOGGER.info("init CR1000")
-        self.pakbus = PakBus(link, dest_node, src_node)
-        if not self.ping_node():
+        self.pakbus = PakBus(link, dest_node, src_node, security_code)
+        for i in xrange(3):
+            try:
+                if self.ping_node():
+                    self.connected = True
+            except:
+                self.pakbus.link.close()
+                self.pakbus.link.open()
+
+        if not self.connected:
             raise NoDeviceException()
 
     @classmethod
-    def from_url(cls, url, timeout=10, dest_node=0x001, src_node=0x802):
+    def from_url(cls, url, timeout=10, dest_node=0x001, src_node=0x802,
+                 security_code=0x0000):
         ''' Get device from url.
 
         :param url: A `PyLink` connection URL.
@@ -56,7 +69,6 @@ class CR1000(object):
         # wait response packet
         return self.pakbus.wait_packet(transac_id)
 
-    @retry(tries=3, delay=1)
     def ping_node(self):
         '''Check if remote host is available.'''
         # send hello command and wait for response packet

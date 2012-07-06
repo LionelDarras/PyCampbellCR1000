@@ -96,16 +96,16 @@ class PakBus(object):
         LOGGER.info("Write: %s" % bytes_to_hex(packet))
         self.link.write(packet)
 
-    def read(self, timeout = 10):
+    def read(self):
         '''Receive packet over PakBus.'''
         all_bytes = []
         byte = None
         begin = time.time()
         while byte != b'\xBD':
+            if time.time() - begin > self.link.timeout:
+                return None            
             # Read until first \xBD frame character
             byte = bytes(self.link.read(1))
-            if time.time() - begin > timeout:
-                return None
         while byte == b'\xBD':
             # Read unitl first character other than \xBD
             byte = bytes(self.link.read(1))
@@ -288,7 +288,10 @@ class PakBus(object):
                 enc = struct.pack(str(fmt), value[0], value[1])
             else:
                 # default encoding scheme
-                enc = struct.pack(str(fmt), value)
+                try:
+                    enc = struct.pack(str(fmt), value)
+                except:
+                    import pdb; pdb.set_trace()
 
             buff.append(enc)
         return b''.join(buff)
@@ -375,17 +378,17 @@ class PakBus(object):
                          [0x89, transac_id, 0x00, 0x02, 1800])
         return b''.join([hdr, msg])
 
+    def unpack_hello_response(self, msg):
+        '''Create Hello Response packet.'''
+        raw = msg['raw'][2:]
+        values, size =  self.decode_bin(['Byte', 'Byte', 'UInt2'], raw)
+        msg['IsRouter'], msg['HopMetric'], msg['VerifyIntv'] = values
+        return msg
+
     def unpack_failure_response(self, msg):
         '''Unpack Failure Response packet.'''
         msg['ErrCode'], size = self.decode_bin(['Byte'], msg['raw'][2:])
         return msg
-
-    def unpack_hello_response(self, transac_id):
-        '''Create Hello Response packet.'''
-        hdr = self.pack_header(0x0)
-        msg = self.encode_bin(['Byte', 'Byte', 'Byte', 'Byte', 'UInt2'],
-                         [0x89, transac_id, 0x00, 0x02, 1800])
-        return b''.join([hdr, msg])
 
     def get_clock_cmd(self, adjustment = (0, 0)):
         '''Create Clock Command packet.
@@ -435,6 +438,9 @@ class PakBus(object):
     def unpack_filecontrol_reponse(self, msg):
         '''Unpack File Control Response packet.'''
         pass
+
+    def __del__(self):
+        self.link.close()
 
     def __unicode__(self):
         name = self.__class__.__name__
