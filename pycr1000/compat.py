@@ -91,3 +91,13 @@ elif is_py3:
     bytes = bytes
     stdout = sys.stdout.buffer
     xrange = range
+
+
+def is_text(data):
+    '''Check if data is text instance'''
+    return isinstance(data, str)
+
+
+def is_bytes(data):
+    '''Check if data is bytes instance'''
+    return isinstance(data, bytes)

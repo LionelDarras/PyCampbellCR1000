@@ -15,7 +15,7 @@ from __future__ import division, unicode_literals
 import struct
 import time
 
-from .compat import ord, chr, bytes
+from .compat import ord, chr, is_text, is_bytes, bytes
 from .logger import LOGGER
 from .utils import Singleton
 from .exceptions import BadDataException, DeliveryFailureException
@@ -96,6 +96,14 @@ class PakBus(object):
         LOGGER.info("Write: %s" % bytes_to_hex(packet))
         self.link.write(packet)
 
+    def read_one_byte(self):
+        '''Read only one byte.'''
+        data = self.link.read(1)
+        if is_text(data):
+            return bytes(data.encode('utf-8'))
+        else:
+            return data
+
     def read(self):
         '''Receive packet over PakBus.'''
         all_bytes = []
@@ -105,14 +113,14 @@ class PakBus(object):
             if time.time() - begin > self.link.timeout:
                 return None
             # Read until first \xBD frame character
-            byte = bytes(self.link.read(1))
+            byte = self.read_one_byte()
         while byte == b'\xBD':
             # Read unitl first character other than \xBD
-            byte = bytes(self.link.read(1))
+            byte = self.read_one_byte()
         while byte != b'\xBD':
             # Read until next occurence of \xBD character
             all_bytes.append(byte)
-            byte = bytes(self.link.read(1))
+            byte = self.read_one_byte()
 
         # Unquote quoted characters
         packet = b"".join(all_bytes)

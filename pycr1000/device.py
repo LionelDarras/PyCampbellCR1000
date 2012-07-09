@@ -85,11 +85,12 @@ class CR1000(object):
         self.connected = True
         return self.connected
 
-    def nsec_to_time(self, nsec):
+    def nsec_to_time(self, nsec, send_time=0):
         '''Calculate datetime with fractional seconds.'''
         timestamp = self.nsec_base + nsec[0]
         timestamp += nsec[1] * self.nsec_tick
-        return datetime.fromtimestamp(timestamp).replace(microsecond=0)
+        device_time =  datetime.fromtimestamp(timestamp) - send_time
+        return device_time.replace(microsecond=0)
 
     def gettime(self):
         '''Returns the current datetime.'''
@@ -97,7 +98,7 @@ class CR1000(object):
         # send clock command and wait for response packet
         hdr, msg, send_time = self.send_wait(self.pakbus.get_clock_cmd())
         # remove transmission time
-        return self.nsec_to_time(msg['Time']) - send_time
+        return self.nsec_to_time(msg['Time'], send_time)
 
     def settime(self, dtime):
         '''Set the given `dtime` and return the new current datetime'''
@@ -105,8 +106,12 @@ class CR1000(object):
         current_time = self.gettime()
         diff = dtime - current_time
         diff = diff.days * 86400 + diff.seconds
-        self.send_wait(self.pakbus.get_clock_cmd((diff, 0)))
-        return self.gettime()
+        # settime (OldTime in response)
+        hdr, msg, sdt1 = self.send_wait(self.pakbus.get_clock_cmd((diff, 0)))
+        # gettime (NewTime in response)
+        hdr, msg, sdt2 = self.send_wait(self.pakbus.get_clock_cmd())
+        # remove transmission time
+        return self.nsec_to_time(msg['Time'], sdt1 + sdt2)
 
     def bye(self):
         '''Send bye command.'''

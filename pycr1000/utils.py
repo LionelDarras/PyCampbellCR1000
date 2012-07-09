@@ -30,16 +30,6 @@ class Singleton(object):
         return Singleton.__instance
 
 
-def is_text(data):
-    '''Check if data is text instance'''
-    return isinstance(data, str)
-
-
-def is_bytes(data):
-    '''Check if data is bytes instance'''
-    return isinstance(data, bytes)
-
-
 class cached_property(object):
     '''A decorator that converts a function into a lazy property.  The
     function wrapped is called the first time to retrieve the result
