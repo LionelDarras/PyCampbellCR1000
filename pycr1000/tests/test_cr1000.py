@@ -38,6 +38,17 @@ def test_settings(url):
     assert device.settings[0]['SettingId'] == 0
     print (device.settings[0]['SettingValue'])
     print (type(device.settings[0]['SettingValue']))
-    assert b"CR" in device.settings[0]['SettingValue']
+    assert b"CR1000" in device.settings[0]['SettingValue']
     assert device.settings[0]['ReadOnly'] == 1
     assert device.settings[0]['LargeValue'] == 0
+
+
+def test_listdir(url):
+    device = CR1000.from_url(url, 1)
+    assert len(device.listdir()) > 1
+
+def test_getfile(url):
+    device = CR1000.from_url(url, 1)
+    fd = device.getfile('CPU:CR1000_LABO.CR1')
+    assert b"CR1000" in fd
+

@@ -15,7 +15,7 @@ from __future__ import division, unicode_literals
 import struct
 import time
 
-from .compat import ord, chr, is_text, bytes
+from .compat import ord, chr, is_text, is_py3, bytes
 from .logger import LOGGER
 from .utils import Singleton
 from .exceptions import BadDataException, DeliveryFailureException
@@ -102,7 +102,7 @@ class PakBus(object):
         '''Read only one byte.'''
         data = self.link.read(1)
         if is_text(data):
-            return bytes(data.decode('utf-8'))
+            return bytes(data.encode('utf-8'))
         else:
             return data
 
@@ -237,6 +237,39 @@ class PakBus(object):
         packet = packet.replace(b'\xBC\xDC', b'\xBC')
         return packet
 
+    def encode_bin(self, types, values):
+        '''Encode binary data according to data type.'''
+        LOGGER.info('Encode bin values')
+        buff = []  # buffer for binary data
+        for i, type_ in enumerate(types):
+            fmt = self.DATATYPE[type_]['fmt']  # get default format for type_
+            value = values[i]
+
+            if type_ == 'ASCIIZ':
+                # special handling: nul-terminated string
+                value += '\0'
+                # Add nul to end of string
+                fmt_ = str('%d%s' % (len(value), fmt))
+                if is_py3:
+                    print(value)
+                    print(type(value))
+                    enc = struct.pack(fmt_, bytes(value, encoding="utf8"))
+                else:
+                    enc = struct.pack(fmt_, str(value))
+            elif type_ == 'ASCII':
+                # special handling: fixed-length string
+                fmt_ = str('%d%s' % (len(value), fmt))
+                enc = struct.pack(fmt_, str(value))
+            elif type_ == 'NSec':
+                # special handling: NSec time
+                enc = struct.pack(str(fmt), value[0], value[1])
+            else:
+                # default encoding scheme
+                enc = struct.pack(str(fmt), value)
+
+            buff.append(enc)
+        return b''.join(buff)
+
     def decode_bin(self, types, buff, length=1):
         '''Decode binary data according to data type.'''
         LOGGER.info('Decode bin values')
@@ -268,7 +301,10 @@ class PakBus(object):
                 value = ((-1) ** sign * float(mant) / 10 ** exp, )
             else:
                 # default decoding scheme
-                value = struct.unpack(fmt, buff[offset:offset + size])
+                try:
+                    value = struct.unpack(str(fmt), buff[offset:offset + size])
+                except:
+                    print(len(buff))
 
             # un-tuple single values
             if len(value) == 1:
@@ -276,37 +312,8 @@ class PakBus(object):
 
             values.append(value)
             offset += size
-
         # Return decoded values and current offset into buffer (size)
         return values, offset
-
-    def encode_bin(self, types, values):
-        '''Encode binary data according to data type.'''
-        LOGGER.info('Encode bin values')
-        buff = []  # buffer for binary data
-        for i, type_ in enumerate(types):
-            fmt = self.DATATYPE[type_]['fmt']  # get default format for type_
-            value = values[i]
-
-            if type_ == 'ASCIIZ':
-                # special handling: nul-terminated string
-                value += '\0'
-                # Add nul to end of string
-                fmt_ = str('%d%s' % (len(value), fmt))
-                enc = struct.pack(fmt_, str(value))
-            elif type_ == 'ASCII':
-                # special handling: fixed-length string
-                fmt_ = str('%d%s' % (len(value), fmt))
-                enc = struct.pack(fmt_, str(value))
-            elif type_ == 'NSec':
-                # special handling: NSec time
-                enc = struct.pack(str(fmt), value[0], value[1])
-            else:
-                # default encoding scheme
-                enc = struct.pack(str(fmt), value)
-
-            buff.append(enc)
-        return b''.join(buff)
 
     def decode_packet(self, data):
         '''Decode packet.'''
@@ -364,14 +371,6 @@ class PakBus(object):
             LOGGER.error('No implementation for <(%r, %r)> packet type'
                          % (hdr['HiProtoCode'], msg['MsgType']))
         return hdr, msg
-
-    def get_bye_cmd(self):
-        '''Create Bye Command packet.'''
-        transac_id = self.transaction.next_id()
-        # PakBus Control Packet
-        hdr = self.pack_header(0x0, 0x0, 0xB)
-        msg = self.encode_bin(['Byte', 'Byte'], [0x0d, 0x0])
-        return b''.join((hdr, msg)), transac_id
 
     def get_hello_cmd(self):
         '''Create Hello Command packet.'''
@@ -446,6 +445,60 @@ class PakBus(object):
                 msg['Settings'].append(item)
         return msg
 
+    def get_collectdata_cmd(self, msg):
+        '''Get Collect data Command packet.'''
+        pass
+
+    def unpack_collectdata_response(self, msg):
+        '''Unpack Collect data Response packet.'''
+        pass
+
+    def get_clock_cmd(self, adjustment=(0, 0)):
+        '''Create Clock Command packet.
+
+        :param adjustment: Clock adjustment (seconds, nanoseconds).
+        '''
+        transac_id = self.transaction.next_id()
+        # BMP5 Application Packet
+        hdr = self.pack_header(0x1)
+        msg = self.encode_bin(['Byte', 'Byte', 'UInt2', 'NSec'],
+                              [0x17, transac_id, self.security_code,
+                               adjustment])
+        return b''.join((hdr, msg)), transac_id
+
+    def unpack_clock_response(self, msg):
+        '''Unpack Clock Response packet.'''
+        values, size = self.decode_bin(['Byte', 'NSec'],  msg['raw'][2:])
+        msg['RespCode'], msg['Time'] = values
+        return msg
+
+    def get_getprogstat_cmd(self):
+        '''Create Get Programming Statistics Transaction packet.'''
+        transac_id = self.transaction.next_id()
+        # BMP5 Application Packet
+        hdr = self.pack_header(0x1)
+        msg = self.encode_bin(['Byte', 'Byte', 'UInt2'],
+                              [0x18, transac_id, self.security_code])
+        return b''.join((hdr, msg)), transac_id
+
+    def unpack_getprogstat_response(self, msg):
+        '''Unpack Get Programming Statistics Transaction Response packet.'''
+        # Get response code
+        (msg['RespCode'], ), size = self.decode_bin(['Byte'], msg['raw'][2:])
+
+        # Get report data if RespCode == 0
+        if msg['RespCode'] == 0:
+            types = ['ASCIIZ', 'UInt2', 'ASCIIZ', 'ASCIIZ', 'Byte', 'ASCIIZ',
+                     'UInt2', 'NSec', 'ASCIIZ']
+            values, size = self.decode_bin(types, msg['raw'][3:])
+            item = {'OSVer': values[0], 'OSSig': values[1],
+                    'SerialNbr': values[2], 'PowUpProg': values[3],
+                    'CompState': values[4], 'ProgName': values[5],
+                    'ProgSig': values[6], 'CompTime': values[7],
+                    'CompResult': values[8]}
+            msg['Stats'] = item
+        return msg
+
     def get_fileupload_cmd(self, filename, offset=0x00000000, swath=0x0200,
                            closeflag=0x01, transac_id=None):
         '''Create File Upload Command packet.'''
@@ -474,8 +527,11 @@ class PakBus(object):
         offset += size
         # Extract file entries
         while True:
+            if len(data) <= offset:
+                break
             file = {}  # file description
             [filename], size = self.decode_bin(['ASCIIZ'], data[offset:])
+            print (filename)
             offset += size
 
             # end loop when file attribute list terminator reached
@@ -502,38 +558,19 @@ class PakBus(object):
 
         return fd
 
-    def get_clock_cmd(self, adjustment=(0, 0)):
-        '''Create Clock Command packet.
-
-        :param adjustment: Clock adjustment (seconds, nanoseconds).
-        '''
-        transac_id = self.transaction.next_id()
-        # BMP5 Application Packet
-        hdr = self.pack_header(0x1)
-        msg = self.encode_bin(['Byte', 'Byte', 'UInt2', 'NSec'],
-                              [0x17, transac_id, self.security_code,
-                               adjustment])
-        return b''.join((hdr, msg)), transac_id
-
-    def unpack_clock_response(self, msg):
-        '''Unpack Clock Response packet.'''
-        values, size = self.decode_bin(['Byte', 'NSec'],  msg['raw'][2:])
-        msg['RespCode'], msg['Time'] = values
-        return msg
-
     def unpack_pleasewait_response(self, msg):
         '''Unpack Pease Wait Response packet.'''
         values, size = self.decode_bin(['Byte', 'UInt2'], msg['raw'][2:])
         msg['CmdMsgType'], msg['WaitSec'] = values
         return msg
 
-    def unpack_collectdata_response(self, msg):
-        '''Unpack Collect data Response packet.'''
-        pass
-
-    def unpack_getprogstat_response(self, msg):
-        '''Unpack Get ProgStat Response packet.'''
-        pass
+    def get_bye_cmd(self):
+        '''Create Bye Command packet.'''
+        transac_id = self.transaction.next_id()
+        # PakBus Control Packet
+        hdr = self.pack_header(0x0, 0x0, 0xB)
+        msg = self.encode_bin(['Byte', 'Byte'], [0x0d, 0x0])
+        return b''.join((hdr, msg)), transac_id
 
     def __del__(self):
         self.link.close()
@@ -547,3 +584,4 @@ class PakBus(object):
 
     def __repr__(self):
         return str(self.__unicode__())
+

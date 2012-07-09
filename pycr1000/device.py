@@ -127,6 +127,7 @@ class CR1000(object):
 
     def getfile(self, filename):
         '''Get a complete file from CR1000 datalogger.'''
+        LOGGER.info('Try get file')
         data = []
         # Send file upload command packets until no more data is returned
         offset = 0x00000000
@@ -151,13 +152,20 @@ class CR1000(object):
             except KeyError:
                 break
 
-        return str("").join(data)
+        return b"".join(data)
 
     def listdir(self):
         data = self.getfile('.DIR')
         # List files in directory
         filedir = self.pakbus.parse_filedir(data)
         return filedir['files']
+
+    def getprogstat(self):
+        '''Get Programming Statistics.'''
+        LOGGER.info('Try get settings')
+        hdr, msg, send_time = self.send_wait(self.pakbus.get_getprogstat_cmd())
+        # remove transmission time
+        return Dict(dict(msg['Stats']))
 
     def bye(self):
         '''Send bye command.'''
@@ -170,3 +178,4 @@ class CR1000(object):
     def __del__(self):
         '''Send bye cmd when object is deleted.'''
         self.bye()
+
