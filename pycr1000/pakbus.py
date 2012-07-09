@@ -103,7 +103,7 @@ class PakBus(object):
         begin = time.time()
         while byte != b'\xBD':
             if time.time() - begin > self.link.timeout:
-                return None            
+                return None
             # Read until first \xBD frame character
             byte = bytes(self.link.read(1))
         while byte == b'\xBD':
@@ -324,6 +324,8 @@ class PakBus(object):
             msg['raw'] = data[8:]
             values, size = self.decode_bin(('Byte', 'Byte'), msg['raw'][:2])
             msg['MsgType'], msg['TranNbr'] = values
+            LOGGER.info('HiProtoCode, MsgType = <%x, %x>' %
+                        (hdr['HiProtoCode'], msg['MsgType']))
         except Exception as e:
             LOGGER.info('Decode packet error : %s' % e)
             raise BadDataException()

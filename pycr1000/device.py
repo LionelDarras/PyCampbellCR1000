@@ -11,14 +11,17 @@
 '''
 from __future__ import division, unicode_literals
 import calendar
+import time
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pylink import link_from_url
 
 from .logger import LOGGER
 from .pakbus import PakBus
 from .exceptions import NoDeviceException
 from .utils import retry
+from .compat import xrange
+
 
 class CR1000(object):
     '''Communicates with the datalogger by sending commands, reads the binary
@@ -42,7 +45,7 @@ class CR1000(object):
             try:
                 if self.ping_node():
                     self.connected = True
-            except:
+            except NoDeviceException as e:
                 self.pakbus.link.close()
                 self.pakbus.link.open()
 
@@ -63,16 +66,20 @@ class CR1000(object):
 
     def send_wait(self, cmd):
         '''Send command and wait for response packet.'''
+        begin = time.time()
         packet = cmd[0]
         transac_id = cmd[1]
         self.pakbus.write(packet)
         # wait response packet
-        return self.pakbus.wait_packet(transac_id)
+        response = self.pakbus.wait_packet(transac_id)
+        end = time.time()
+        send_time = timedelta(seconds=((begin - end) / 2))
+        return response[0], response[1], send_time
 
     def ping_node(self):
         '''Check if remote host is available.'''
         # send hello command and wait for response packet
-        hdr, msg = self.send_wait(self.pakbus.get_hello_cmd())
+        hdr, msg, send_time = self.send_wait(self.pakbus.get_hello_cmd())
         if not (hdr and msg):
             raise NoDeviceException()
         self.connected = True
@@ -88,8 +95,9 @@ class CR1000(object):
         '''Returns the current datetime.'''
         LOGGER.info('Try gettime')
         # send clock command and wait for response packet
-        hdr, msg = self.send_wait(self.pakbus.get_clock_cmd())
-        return self.nsec_to_time(msg['Time'])
+        hdr, msg, send_time = self.send_wait(self.pakbus.get_clock_cmd())
+        # remove transmission time
+        return self.nsec_to_time(msg['Time']) - send_time
 
     def settime(self, dtime):
         '''Set the given `dtime` and return the new current datetime'''
@@ -97,8 +105,8 @@ class CR1000(object):
         current_time = self.gettime()
         diff = dtime - current_time
         diff = diff.days * 86400 + diff.seconds
-        hdr, msg = self.send_wait(self.pakbus.get_clock_cmd((diff, 0)))
-        return self.nsec_to_time(msg['Time'])
+        self.send_wait(self.pakbus.get_clock_cmd((diff, 0)))
+        return self.gettime()
 
     def bye(self):
         '''Send bye command.'''
