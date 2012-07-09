@@ -19,8 +19,8 @@ from pylink import link_from_url
 from .logger import LOGGER
 from .pakbus import PakBus
 from .exceptions import NoDeviceException
-from .utils import retry
 from .compat import xrange
+from .utils import cached_property, ListDict, Dict
 
 
 class CR1000(object):
@@ -45,7 +45,7 @@ class CR1000(object):
             try:
                 if self.ping_node():
                     self.connected = True
-            except NoDeviceException as e:
+            except NoDeviceException:
                 self.pakbus.link.close()
                 self.pakbus.link.open()
 
@@ -113,6 +113,20 @@ class CR1000(object):
         # remove transmission time
         return self.nsec_to_time(msg['Time'], sdt1 + sdt2)
 
+    @cached_property
+    def settings(self):
+        '''Get device settings as dict'''
+        LOGGER.info('Try get settings')
+        # send getsettings command and wait for response packet
+        hdr, msg, send_time = self.send_wait(self.pakbus.get_getsettings_cmd())
+        # remove transmission time
+        settings = ListDict()
+        for item in msg["Settings"]:
+            settings.append(Dict(dict(item)))
+        return settings
+
+
+
     def bye(self):
         '''Send bye command.'''
         LOGGER.info("Send bye command")
@@ -124,3 +138,4 @@ class CR1000(object):
     def __del__(self):
         '''Send bye cmd when object is deleted.'''
         self.bye()
+

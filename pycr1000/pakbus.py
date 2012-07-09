@@ -15,7 +15,7 @@ from __future__ import division, unicode_literals
 import struct
 import time
 
-from .compat import ord, chr, is_text, is_bytes, bytes
+from .compat import ord, chr, is_text, bytes
 from .logger import LOGGER
 from .utils import Singleton
 from .exceptions import BadDataException, DeliveryFailureException
@@ -156,15 +156,15 @@ class PakBus(object):
         if msg['MsgType'] == 0x09:
             pkt = self.get_hello_response(hdr['SrcNodeId'], hdr['DstNodeId'],
                                           msg['TranNbr'])
-            self.send(pkt)
+            self.write(pkt)
             return self.wait_packet(transac_id)
 
         # Handle "please wait" packets
         if msg['TranNbr'] == transac_id and msg['MsgType'] == 0xa1:
-            timeout = msg['WaitSec']
-            time.sleep(timeout)
+            timewait = msg['WaitSec']
+            LOGGER.info('Please Wait Message packet <%s sec>' % timewait)
+            time.sleep(timewait)
             return self.wait_packet(transac_id)
-
 
         # Handle failure message packets and raise exception
         if msg['MsgType'] == 0x81:
@@ -343,6 +343,10 @@ class PakBus(object):
             msg = self.unpack_hello_response(msg)
         elif hdr['HiProtoCode'] == 0 and msg['MsgType'] == 0x81:
             msg = self.unpack_failure_response(msg)
+        elif hdr['HiProtoCode'] == 0 and msg['MsgType'] == 0x8f:
+            msg = self.unpack_getsettings_response(msg)
+        elif hdr['HiProtoCode'] == 0 and msg['MsgType'] in 0x93:
+            msg = self.unpack_control_response(msg)
         # BMP5 Application Packets
         elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x89:
             msg = self.unpack_collectdata_response(msg)
@@ -354,15 +358,12 @@ class PakBus(object):
             msg = self.unpack_getvalues_response(msg)
         elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x9c:
             msg = self.unpack_filedownload_response(msg)
-        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x9d:
-            msg = self.unpack_fileupload_response(msg)
-        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x9e:
             msg = self.unpack_filecontrol_response(msg)
         elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0xa1:
             msg = self.unpack_pleasewait_response(msg)
         else:
             LOGGER.error('No implementation for <(%r, %r)> packet type'
-                           % (hdr['HiProtoCode'], msg['MsgType']))
+                         % (hdr['HiProtoCode'], msg['MsgType']))
         return hdr, msg
 
     def get_bye_cmd(self):
@@ -397,8 +398,55 @@ class PakBus(object):
 
     def unpack_failure_response(self, msg):
         '''Unpack Failure Response packet.'''
-        msg['ErrCode'], size = self.decode_bin(['Byte'], msg['raw'][2:])
+        (msg['ErrCode'],), size = self.decode_bin(['Byte'], msg['raw'][2:])
         return msg
+
+    def get_getsettings_cmd(self):
+        '''Create Getsettings Command packet.'''
+        transac_id = self.transaction.next_id()
+        hdr = self.pack_header(0x0)
+        msg = self.encode_bin(['Byte', 'Byte'], [0x0f, transac_id])
+        return b''.join([hdr, msg]), transac_id
+
+    def unpack_getsettings_response(self, msg):
+        '''Create Getsettings Response packet.'''
+        (msg['Outcome'],), size = self.decode_bin(['Byte'], msg['raw'][2:])
+        offset = size + 2
+
+        # Generate dictionary of all settings
+        msg['Settings'] = []
+        if msg['Outcome'] == 0x01:
+            values, size = self.decode_bin(['UInt2', 'Byte', 'Byte', 'Byte'],
+                              msg['raw'][offset:])
+            msg['DeviceType'] = values[0]
+            msg['MajorVersion'] = values[1]
+            msg['MinorVersion'] = values[2]
+            msg['MoreSettings'] = values[3]
+            offset += size
+
+            while offset < len(msg['raw']):
+                # Get setting ID
+                [SettingId], size = self.decode_bin(['UInt2'],
+                                                    msg['raw'][offset:])
+                offset += size
+
+                # Get flags and length
+                [bit16], size = self.decode_bin(['UInt2'], msg['raw'][offset:])
+                LargeValue = (bit16 & 0x8000) >> 15
+                ReadOnly = (bit16 & 0x4000) >> 14
+                SettingLen = bit16 & 0x3FFF
+                offset += size
+
+                # Get value
+                SettingValue = msg['raw'][offset:offset+SettingLen]
+                offset += SettingLen
+                item = {'SettingId': SettingId,
+                        'SettingValue': SettingValue,
+                        'LargeValue': LargeValue,
+                        'ReadOnly': ReadOnly}
+                msg['Settings'].append(item)
+        return msg
+
 
     def get_clock_cmd(self, adjustment = (0, 0)):
         '''Create Clock Command packet.
@@ -441,10 +489,6 @@ class PakBus(object):
         '''Unpack File Download Response packet.'''
         pass
 
-    def unpack_fileupload_reponse(self, msg):
-        '''Unpack File Upload Response packet.'''
-        pass
-
     def unpack_filecontrol_reponse(self, msg):
         '''Unpack File Control Response packet.'''
         pass
@@ -461,3 +505,4 @@ class PakBus(object):
 
     def __repr__(self):
         return str(self.__unicode__())
+

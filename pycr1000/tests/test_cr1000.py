@@ -31,3 +31,14 @@ def test_settime(url):
     device_time = device.settime(now)
     assert device_time.second in (10,11,12)
     assert now == device_time.replace(second=10)
+
+
+def test_settings(url):
+    device = CR1000.from_url(url, 1)
+    assert device.settings[0]['SettingId'] == 0
+    print (device.settings[0]['SettingValue'])
+    print (type(device.settings[0]['SettingValue']))
+    assert b"CR" in device.settings[0]['SettingValue']
+    assert device.settings[0]['ReadOnly'] == 1
+    assert device.settings[0]['LargeValue'] == 0
+

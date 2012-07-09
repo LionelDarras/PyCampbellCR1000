@@ -13,7 +13,7 @@ import time
 import csv
 import binascii
 
-from .compat import to_char, str, bytes, StringIO, is_py3
+from .compat import to_char, str, StringIO, is_py3, OrderedDict
 
 
 class Singleton(object):
@@ -31,7 +31,7 @@ class Singleton(object):
 
 
 class cached_property(object):
-    '''A decorator that converts a function into a lazy property.  The
+    """A decorator that converts a function into a lazy property.  The
     function wrapped is called the first time to retrieve the result
     and then that calculated result is used the next time you access
     the value::
@@ -47,7 +47,7 @@ class cached_property(object):
     work.
     Stolen from:
     https://raw.github.com/mitsuhiko/werkzeug/master/werkzeug/utils.py
-    '''
+    """
 
     def __init__(self, func, name=None, doc=None, writeable=False):
         if writeable:
@@ -84,7 +84,7 @@ class retry(object):
 
     def __call__(self, f):
         def wrapped_f(*args, **kwargs):
-            for i in range(self.tries - 1):
+            for i in range(self.tries):
                 try:
                     ret = f(*args, **kwargs)
                     if ret:
@@ -92,14 +92,11 @@ class retry(object):
                     elif i == self.tries - 1:
                         return ret
                 except Exception as e:
-                    pass
+                    if i == self.tries - 1:
+                        # last chance
+                        raise e
                 if self.delay > 0:
                     time.sleep(self.delay)
-            ret = f(*args, **kwargs)
-            if ret:
-                return ret
-            elif i == self.tries - 1:
-                return ret
         wrapped_f.__doc__ = f.__doc__
         wrapped_f.__name__ = f.__name__
         wrapped_f.__module__ = f.__module__
@@ -204,41 +201,8 @@ def dict_to_csv(items, delimiter, header):
     return content
 
 
-class Dict(object):
-    '''A sorted dict with somes additional methods.'''
-    def __init__(self, initial_dict=None):
-        initial_dict = initial_dict or {}
-        self.store = dict(initial_dict)
-
-    def __getitem__(self, key):
-        return self.store[key]
-
-    def __setitem__(self, key, value):
-        self.store[key] = value
-
-    def __delitem__(self, key):
-        del self.store[key]
-
-    def copy(self):
-        return Dict(self)
-
-    def keys(self):
-        return self.store.keys()
-
-    def values(self):
-        return self.store.values()
-
-    def items(self):
-        return self.store.items()
-
-    def __contains__(self, key):
-        return key in self.store.keys()
-
-    def __iter__(self):
-        return iter(self.store)
-
-    def __len__(self):
-        return len(self.store)
+class Dict(OrderedDict):
+    '''A dict with somes additional methods.'''
 
     def filter(self, keys):
         '''Create a dict with only the following `keys`.
@@ -247,25 +211,20 @@ class Dict(object):
         >>> mydict.filter(['age', 'name'])
         {'age': 1, 'name': 'foo'}
         '''
-        data = self.store.copy()
-        unused_keys = set(data.keys()) - set(keys)
-        for key in unused_keys:
-            del data[key]
-        return Dict(data)
+        data = Dict()
+        real_keys = set(self.keys()) - set(set(self.keys()) - set(keys))
+        for key in keys:
+            if key in real_keys:
+                data[key] = self[key]
+        return data
 
     def to_csv(self, delimiter=',', header=True):
         '''Serialize list of dictionaries to csv.'''
-        return dict_to_csv([self.store], delimiter, header)
-
-    def __str__(self):
-        return "%s" % self.store.__str__()
-
-    def __repr__(self):
-        return self.store.__repr__()
+        return dict_to_csv([self], delimiter, header)
 
 
 class ListDict(list):
-    '''List of sorteddicts with somes additional methods.'''
+    '''List of dicts with somes additional methods.'''
 
     def to_csv(self, delimiter=',', header=True):
         '''Serialize list of dictionaries to csv.'''
@@ -281,14 +240,11 @@ class ListDict(list):
         '''
         items = ListDict()
         for item in self:
-            data = item.copy()
-            unused_keys = set(data.keys()) - set(keys)
-            for key in unused_keys:
-                del data[key]
-            items.append(data)
+            items.append(item.filter(keys))
         return items
 
     def sorted_by(self, keyword, reverse=False):
         '''Returns list sorted by `keyword`.'''
-        return ListDict(sorted(self, key=lambda k: k[keyword],
-                                     reverse=reverse))
+        key_ = keyword
+        return ListDict(sorted(self, key=lambda k: k[key_], reverse=reverse))
+

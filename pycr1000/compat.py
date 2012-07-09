@@ -57,8 +57,10 @@ if is_py2:
         class NullHandler(Handler):
             def emit(self, record):
                 pass
+        from ordereddict import OrderedDict
     else:
         from logging import NullHandler
+        from collections import OrderedDict
     from StringIO import StringIO
 
     def to_char(string):
@@ -76,6 +78,7 @@ if is_py2:
 
 
 elif is_py3:
+    from collections import OrderedDict
     from logging import NullHandler
     from io import StringIO
 
@@ -101,3 +104,4 @@ def is_text(data):
 def is_bytes(data):
     '''Check if data is bytes instance'''
     return isinstance(data, bytes)
+
