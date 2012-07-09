@@ -52,3 +52,7 @@ def test_getfile(url):
     fd = device.getfile('CPU:CR1000_LABO.CR1')
     assert b"CR1000" in fd
 
+def test_getprogstat(url):
+    device = CR1000.from_url(url, 1)
+    b"CR1000" in device.getprogstat()['OSVer']
+
