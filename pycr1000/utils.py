@@ -22,8 +22,9 @@ class Singleton(object):
     Stolen from:
     http://code.activestate.com/recipes/519627-singleton-base-class/'''
     __instance = None
+
     def __new__(typ, *args, **kwargs):
-        if Singleton.__instance == None:
+        if Singleton.__instance is None:
             obj = object.__new__(typ, *args, **kwargs)
             Singleton.__instance = obj
 
@@ -247,4 +248,3 @@ class ListDict(list):
         '''Returns list sorted by `keyword`.'''
         key_ = keyword
         return ListDict(sorted(self, key=lambda k: k[key_], reverse=reverse))
-

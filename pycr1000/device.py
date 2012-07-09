@@ -89,7 +89,7 @@ class CR1000(object):
         '''Calculate datetime with fractional seconds.'''
         timestamp = self.nsec_base + nsec[0]
         timestamp += nsec[1] * self.nsec_tick
-        device_time =  datetime.fromtimestamp(timestamp) - send_time
+        device_time = datetime.fromtimestamp(timestamp) - send_time
         return device_time.replace(microsecond=0)
 
     def gettime(self):
@@ -125,7 +125,39 @@ class CR1000(object):
             settings.append(Dict(dict(item)))
         return settings
 
+    def getfile(self, filename):
+        '''Get a complete file from CR1000 datalogger.'''
+        data = []
+        # Send file upload command packets until no more data is returned
+        offset = 0x00000000
+        transac_id = None
+        while True:
+            # Upload chunk from file starting at offset
+            cmd = self.pakbus.get_fileupload_cmd(filename,
+                                                 offset=offset,
+                                                 closeflag=0x00,
+                                                 transac_id=transac_id)
+            transac_id = cmd[1]
+            hdr, msg, send_time = self.send_wait(cmd)
+            try:
+                if msg['RespCode'] == 1:
+                    raise ValueError("Permission denied")
+                # End loop if no more data is returned
+                if not msg['FileData']:
+                    break
+                # Append file data
+                data.append(msg['FileData'])
+                offset += len(msg['FileData'])
+            except KeyError:
+                break
 
+        return str("").join(data)
+
+    def listdir(self):
+        data = self.getfile('.DIR')
+        # List files in directory
+        filedir = self.pakbus.parse_filedir(data)
+        return filedir['files']
 
     def bye(self):
         '''Send bye command.'''
@@ -138,4 +170,3 @@ class CR1000(object):
     def __del__(self):
         '''Send bye cmd when object is deleted.'''
         self.bye()
-
