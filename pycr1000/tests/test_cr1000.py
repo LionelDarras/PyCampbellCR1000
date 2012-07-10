@@ -21,10 +21,12 @@ from ..device import CR1000
 # active logging for tests
 active_logger()
 
+
 @pytest.mark.cr1000
 def test_gettime(url):
     device = CR1000.from_url(url, 1)
     assert isinstance(device.gettime(), datetime)
+
 
 @pytest.mark.cr1000
 def test_settime(url):
@@ -33,6 +35,11 @@ def test_settime(url):
     device_time = device.settime(now)
     assert device_time.second in (10, 11, 12)
     assert now == device_time.replace(second=10)
+    lastday = now - timedelta(days=1)
+    tomorrow = now + timedelta(days=1)
+    assert lastday == device.settime(lastday).replace(second=10)
+    assert tomorrow == device.settime(tomorrow).replace(second=10)
+
 
 @pytest.mark.cr1000
 def test_settings(url):
@@ -44,10 +51,12 @@ def test_settings(url):
     assert device.settings[0]['ReadOnly'] == 1
     assert device.settings[0]['LargeValue'] == 0
 
+
 @pytest.mark.cr1000
-def test_listdir(url):
+def test_list_files(url):
     device = CR1000.from_url(url, 1)
-    assert len(device.listdir()) > 1
+    assert len(device.list_files()) > 1
+
 
 @pytest.mark.cr1000
 def test_getfile(url):
@@ -55,8 +64,8 @@ def test_getfile(url):
     fd = device.getfile('CPU:CR1000_LABO.CR1')
     assert b"CR1000" in fd
 
+
 @pytest.mark.cr1000
 def test_getprogstat(url):
     device = CR1000.from_url(url, 1)
     b"CR1000" in device.getprogstat()['OSVer']
-

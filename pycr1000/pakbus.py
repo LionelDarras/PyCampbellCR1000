@@ -147,7 +147,7 @@ class PakBus(object):
 
         hdr, msg = self.decode_packet(data)
         if hdr == {} or msg == {}:
-            return {}, {}
+            return hdr, msg
 
         # ignore packets that are not for us
         if (hdr['DstNodeId'] != self.src_node) or \
@@ -346,7 +346,7 @@ class PakBus(object):
             LOGGER.info('HiProtoCode, MsgType = <%x, %x>' %
                         (hdr['HiProtoCode'], msg['MsgType']))
         except Exception as e:
-            LOGGER.info('Decode packet error : %s' % e)
+            LOGGER.error('Decode packet error : %s' % e)
             raise BadDataException()
 
         # PakBus Control Packets
@@ -445,13 +445,37 @@ class PakBus(object):
                 msg['Settings'].append(item)
         return msg
 
-    def get_collectdata_cmd(self, msg):
-        '''Get Collect data Command packet.'''
-        pass
+    def get_collectdata_cmd(self, tablenbr, tabledefsig, mode=0x05,
+                            P1=0, P2=0):
+        '''Create Collect Data Command packet'''
+        transac_id = self.transaction.next_id()
+        # BMP5 Application Packet
+        hdr = self.pack_header(0x1)
+        msg = self.encode_bin(['Byte', 'Byte', 'UInt2', 'Byte'],
+                              [0x09, transac_id, self.security_code,
+                               mode])
+        # encode table number and signature
+        msg += self.encode_bin(['UInt2', 'UInt2'], [tablenbr, tabledefsig])
+        # add P1 and P2 according to collect mode
+        if (mode == 0x04) | (mode == 0x05):
+            # only P1 used (type UInt4)
+            msg += self.encode_bin(['UInt4'], [P1])
+        elif (mode == 0x06) | (mode == 0x08):
+            # P1 and P2 used (type UInt4)
+            msg += self.encode_bin(['UInt4', 'UInt4'], [P1, P2])
+        elif mode == 0x07:
+            # P1 and P2 used (type NSec)
+            msg += self.encode_bin(['NSec', 'NSec'], [P1, P2])
+        # add field list = all fields
+        msg += self.encode_bin(['UInt2'], [0])
+        return b''.join((hdr, msg)), transac_id
 
     def unpack_collectdata_response(self, msg):
-        '''Unpack Collect data Response packet.'''
-        pass
+        '''Unpack Collect Data Response body.'''
+        (msg['RespCode'],), size = self.decode_bin(['Byte'], msg['raw'][2:])
+        # return raw record data for later parsing
+        msg['RecData'] = msg['raw'][size + 2:]
+        return msg
 
     def get_clock_cmd(self, adjustment=(0, 0)):
         '''Create Clock Command packet.
@@ -519,6 +543,20 @@ class PakBus(object):
         msg['FileData'] = msg['raw'][7:]
         return msg
 
+    def unpack_pleasewait_response(self, msg):
+        '''Unpack Pease Wait Response packet.'''
+        values, size = self.decode_bin(['Byte', 'UInt2'], msg['raw'][2:])
+        msg['CmdMsgType'], msg['WaitSec'] = values
+        return msg
+
+    def get_bye_cmd(self):
+        '''Create Bye Command packet.'''
+        transac_id = self.transaction.next_id()
+        # PakBus Control Packet
+        hdr = self.pack_header(0x0, 0x0, 0xB)
+        msg = self.encode_bin(['Byte', 'Byte'], [0x0d, 0x0])
+        return b''.join((hdr, msg)), transac_id
+
     def parse_filedir(self, data):
         '''Parse File Directory Format.'''
         offset = 0  # offset into raw buffer
@@ -553,24 +591,202 @@ class PakBus(object):
                     file['Attribute'].append(attribute)
                 else:
                     break  # End of attribute list reached
-
             fd['files'].append(file)  # add file entry to list
-
         return fd
 
-    def unpack_pleasewait_response(self, msg):
-        '''Unpack Pease Wait Response packet.'''
-        values, size = self.decode_bin(['Byte', 'UInt2'], msg['raw'][2:])
-        msg['CmdMsgType'], msg['WaitSec'] = values
-        return msg
+    def parse_tabledef(self, raw):
+        '''Parse table definition.'''
+        tabledef = []  # List of table definitions
 
-    def get_bye_cmd(self):
-        '''Create Bye Command packet.'''
-        transac_id = self.transaction.next_id()
-        # PakBus Control Packet
-        hdr = self.pack_header(0x0, 0x0, 0xB)
-        msg = self.encode_bin(['Byte', 'Byte'], [0x0d, 0x0])
-        return b''.join((hdr, msg)), transac_id
+        offset = 0  # offset into raw buffer
+        fslversion, size = self.decode_bin(['Byte'], raw[offset:])
+        offset += size
+
+        # Parse list of table definitions
+        while offset < len(raw):
+
+            tblhdr = {}  # table header
+            tblfld = []  # table field definitions
+            start = offset  # start of table definition
+
+            # Extract table header data
+            types = ['ASCIIZ', 'UInt4', 'Byte', 'NSec', 'NSec']
+            values, size = self.decode_bin(types, raw[offset:])
+            tblhdr['TableName'] = values[0]
+            tblhdr['TableSize'] = values[1]
+            tblhdr['TimeType'] = values[2]
+            tblhdr['TblTimeInto'] = values[3]
+            tblhdr['TblInterval'] = values[4]
+
+            offset += size
+
+            # Extract field definitions
+            while True:
+                fld = {}
+                (fieldtype,), size = self.decode_bin(['Byte'], raw[offset:])
+                offset += size
+
+                # end loop when field list terminator reached
+                if fieldtype == 0:
+                    break
+
+                # Extract bits from fieldtype
+                fld['ReadOnly'] = fieldtype >> 7  # only Bit 7
+
+                # Convert fieldtype to ASCII FieldType (e.g. 'FP4') if possible
+                # else return numerical value
+                fld['FieldType'] = fieldtype & 0x7F  # only Bits 0..6
+                for Type in self.DATATYPE.keys():
+                    if fld['FieldType'] == self.DATATYPE[Type]['code']:
+                        fld['FieldType'] = Type
+                        break
+
+                # Extract field name
+                values, size = self.decode_bin(['ASCIIZ'], raw[offset:])
+                fld['FieldName'] = values[0]
+                offset += size
+
+                # Extract AliasName list
+                fld['AliasName'] = []
+                while True:
+                    values, size = self.decode_bin(['ASCIIZ'], raw[offset:])
+                    aliasname = values[0]
+                    offset += size
+                    # Alias names list terminator reached
+                    if aliasname == '':
+                        break
+                    fld['AliasName'].append(aliasname)
+
+                # Extract other mandatory field definition items
+                types = ['ASCIIZ', 'ASCIIZ', 'ASCIIZ', 'UInt4', 'UInt4']
+                values, size = self.decode_bin(types, raw[offset:])
+                fld['Processing'] = values[0]
+                fld['Units'] = values[1]
+                fld['Description'] = values[2]
+                fld['BegIdx'] = values[3]
+                fld['Dimension'] = values[4]
+                offset += size
+
+                # Extract sub dimension (if any)
+                fld['SubDim'] = []
+                while True:
+                    (subdim,), size = self.decode_bin(['UInt4'], raw[offset:])
+                    offset += size
+                    # sub-dimension list terminator reached
+                    if subdim == 0:
+                        break
+                    fld['SubDim'].append(subdim)
+
+                # append current field definition to list
+                tblfld.append(fld)
+
+            # calculate table signature
+            tblsig = self.compute_signature(raw[start:offset])
+
+            # Append header, field list and signature to table definition list
+            item = {'Header': tblhdr, 'Fields': tblfld, 'Signature': tblsig}
+            tabledef.append(item)
+        return tabledef
+
+    def parse_collectdata(self, raw, tabledef, fieldnbr=[]):
+        '''Parse data returned by Collectdata Response.'''
+
+        offset = 0
+        recdata = []  # output structure
+
+        while offset < len(raw) - 1:
+            frag = {}  # record fragment
+
+            values, size = self.decode_bin(['UInt2', 'UInt4'], raw[offset:])
+            frag['TableNbr'], frag['BegRecNbr'] = values
+            offset += size
+
+            # Provide table name
+            t_frag = tabledef[frag['TableNbr'] - 1]
+            tablename = t_frag['Header']['TableName']
+            frag['TableName'] = tablename
+
+            # Decode number of records (16 bits) or ByteOffset (32 Bits)
+            (isoffset,), size = self.decode_bin(['Byte'], raw[offset:])
+            frag['IsOffset'] = isoffset >> 7
+
+            # Handle fragmented records
+            if frag['IsOffset']:
+                (byteoffset,), size = self.decode_bin(['UInt4'], raw[offset:])
+                offset += size
+                frag['ByteOffset'] = byteoffset & 0x7FFFFFFF
+                frag['NbrOfRecs'] = None
+                # Copy remaining raw data into RecFrag
+                frag['RecFrag'] = raw[offset:-1]
+                offset += len(frag['RecFrag'])
+
+            # Handle complete records (standard case)
+            else:
+                (nbrofrecs,), size = self.decode_bin(['UInt2'], raw[offset:])
+                offset += size
+                frag['NbrOfRecs'] = nbrofrecs & 0x7FFF
+                frag['ByteOffset'] = None
+
+                # Get time of first record and time interval information
+                interval = t_frag['Header']['TblInterval']
+                if interval == (0, 0):  # event-driven table
+                    timeofrec = None
+                else:
+                    # interval data, read time of first record
+                    [timeofrec], size = self.decode_bin(['NSec'], raw[offset:])
+                    offset += size
+
+                # Loop over all records
+                frag['RecFrag'] = []
+                for n in range(frag['NbrOfRecs']):
+                    record = {}
+
+                    # Calculate current record number
+                    record['RecNbr'] = frag['BegRecNbr'] + n
+
+                    # Get TimeOfRec for interval data or event-driven tables
+                    if timeofrec:  # interval data
+                        time0 = timeofrec[0] + n * interval[0]
+                        time1 = timeofrec[1] + n * interval[1]
+                        record['TimeOfRec'] = (time0, time1)
+                    else:
+                        # event-driven, time data precedes each record
+                        values, size = self.decode_bin(['NSec'], raw[offset:])
+                        record['TimeOfRec'] = values[0]
+                        offset += size
+
+                    # Loop over all field indices
+                    record['Fields'] = {}
+                    if fieldnbr:
+                        # explicit field numbers provided
+                        fields = fieldnbr
+                    else:
+                        # default: generate list of all fields in table
+                        fields = t_frag['Fields']
+                        fields = range(1, len(fields) + 1)
+
+                    for field in fields:
+                        fieldname = t_frag['Fields'][field - 1]['FieldName']
+                        fieldtype = t_frag['Fields'][field - 1]['FieldType']
+                        dimension = t_frag[field - 1]['Dimension']
+                        if fieldtype == 'ASCII':
+                            values, size = self.decode_bin([fieldtype],
+                                                           raw[offset:],
+                                                           dimension)
+                            record['Fields'][fieldname] = values[0]
+                        else:
+                            values, size = \
+                                self.decode_bin(dimension * [fieldtype],
+                                                raw[offset:])
+                            record['Fields'][fieldname] = values[0]
+                        offset += size
+                    frag['RecFrag'].append(record)
+
+            recdata.append(frag)
+
+        # Get flag if more records exist
+        (more_rec,), size = self.decode_bin(['Bool'], raw[offset:])
+        return recdata, more_rec
 
     def __del__(self):
         self.link.close()
@@ -584,4 +800,3 @@ class PakBus(object):
 
     def __repr__(self):
         return str(self.__unicode__())
-

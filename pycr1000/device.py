@@ -154,14 +154,56 @@ class CR1000(object):
 
         return b"".join(data)
 
-    def listdir(self):
+    def list_files(self):
         data = self.getfile('.DIR')
         # List files in directory
         filedir = self.pakbus.parse_filedir(data)
         return filedir['files']
 
+    def get_table_def(self):
+        data = self.getfile('.TDF')
+        # List tables
+        return self.pakbus.parse_tabledef(data)
+
+    def list_tables(self):
+        names = []
+        for item in self.get_table_def():
+            names.append(item['Header']['TableName'])
+        return names
+
+    def collect_data(self, tablename, mode=0x05):
+        '''Collect data.'''
+        tabledef = self.get_table_def()
+        # Get table number
+        tablenbr = None
+        for i, item in enumerate(tabledef):
+            if item['Header']['TableName'] == tablename:
+                tablenbr = i + 1
+                break
+        if tablenbr is None:
+            raise StandardError('table %s not found' % tablename)
+        # Get table definition signature
+        tabledefsig = tabledef[tablenbr - 1]['Signature']
+
+        # Send collect data request
+        cmd = self.pakbus.get_collectdata_cmd(tablenbr, tabledefsig, mode)
+        hdr, msg, send_time = self.send_wait(cmd)
+        data, more = self.pakbus.parse_collectdata(msg['RecData'], tabledef)
+        if more:
+            # TODO: get this data ?
+            pass
+        # Return parsed record data and flag if more records exist
+        return data
+
     def getprogstat(self):
         '''Get Programming Statistics.'''
+        LOGGER.info('Try get settings')
+        hdr, msg, send_time = self.send_wait(self.pakbus.get_getprogstat_cmd())
+        # remove transmission time
+        return Dict(dict(msg['Stats']))
+
+    def getdata(self):
+        '''Get data.'''
         LOGGER.info('Try get settings')
         hdr, msg, send_time = self.send_wait(self.pakbus.get_getprogstat_cmd())
         # remove transmission time
@@ -178,4 +220,3 @@ class CR1000(object):
     def __del__(self):
         '''Send bye cmd when object is deleted.'''
         self.bye()
-

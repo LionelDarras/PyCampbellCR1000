@@ -9,7 +9,6 @@
     :license: GNU GPL v3.
 
 '''
-
 import sys
 
 # -------
