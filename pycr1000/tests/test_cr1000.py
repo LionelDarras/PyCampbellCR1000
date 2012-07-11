@@ -39,7 +39,7 @@ def test_settime(url):
     tomorrow = now + timedelta(days=1)
     assert lastday == device.settime(lastday).replace(second=10)
     assert tomorrow == device.settime(tomorrow).replace(second=10)
-
+    device.settime(datetime.now())
 
 @pytest.mark.cr1000
 def test_settings(url):
@@ -64,6 +64,22 @@ def test_getfile(url):
     fd = device.getfile('CPU:CR1000_LABO.CR1')
     assert b"CR1000" in fd
 
+
+@pytest.mark.cr1000
+def test_list_tables(url):
+    device = CR1000.from_url(url, 1)
+#    assert b"Public" in device.list_tables()
+
+
+@pytest.mark.cr1000
+def test_get_data(url):
+    device = CR1000.from_url(url, 1)
+    start_date = datetime.now() - timedelta(minutes=30)
+    stop_date = datetime.now()
+    data = device.get_all_data('Table1', start_date, stop_date)
+    assert len(data) > 0
+    for item in data:
+        assert start_date <= item["Datetime"] < stop_date
 
 @pytest.mark.cr1000
 def test_getprogstat(url):

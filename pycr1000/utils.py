@@ -8,10 +8,14 @@
 
 '''
 from __future__ import unicode_literals
+import math
+import calendar
 import sys
 import time
 import csv
 import binascii
+
+from datetime import datetime
 
 from .compat import to_char, str, StringIO, is_py3, OrderedDict
 
@@ -102,6 +106,32 @@ class retry(object):
         wrapped_f.__name__ = f.__name__
         wrapped_f.__module__ = f.__module__
         return wrapped_f
+
+
+def nsec_to_time(nsec, utc=False):
+    '''Convert nsec to datetime.'''
+    nsec_base = calendar.timegm((1990, 1, 1, 0, 0, 0))
+    nsec_tick = 1E-9
+    timestamp = nsec_base + nsec[0]
+    timestamp += nsec[1] * nsec_tick
+    if utc:
+        return datetime.utcfromtimestamp(timestamp).replace(microsecond=0)
+    return datetime.fromtimestamp(timestamp).replace(microsecond=0)
+
+
+def time_to_nsec(dtime, utc=False):
+    '''Convert timestamp to nsec value.'''
+    nsec_base = calendar.timegm((1990, 1, 1, 0, 0, 0))
+    nsec_tick = 1E-9
+    if utc:
+        timestamp = calendar.timegm(dtime.utctimetuple())
+    else:
+        timestamp = calendar.timegm(dtime.timetuple())
+    # separate fractional and integer part of timestamp
+    (fp, ip) = math.modf(timestamp)
+    # Calculate two integer values for NSec
+    nsec = (int(ip - nsec_base), int(fp / nsec_tick))
+    return nsec
 
 
 def bytes_to_hex(byte):

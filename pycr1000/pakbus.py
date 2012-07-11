@@ -19,7 +19,7 @@ from .compat import ord, chr, is_text, is_py3, bytes
 from .logger import LOGGER
 from .utils import Singleton
 from .exceptions import BadDataException, DeliveryFailureException
-from .utils import bytes_to_hex
+from .utils import bytes_to_hex, nsec_to_time
 
 
 class Transaction(Singleton):
@@ -250,8 +250,6 @@ class PakBus(object):
                 # Add nul to end of string
                 fmt_ = str('%d%s' % (len(value), fmt))
                 if is_py3:
-                    print(value)
-                    print(type(value))
                     enc = struct.pack(fmt_, bytes(value, encoding='utf8'))
                 else:
                     enc = struct.pack(fmt_, str(value))
@@ -280,9 +278,12 @@ class PakBus(object):
 
             if type_ == 'ASCIIZ':
                 # special handling: nul-terminated string
-                nul = buff.find(b'\0', offset)
+                nul = buff.index(b'\0', offset)
                 # find first '\0' after offset
-                value = buff[offset:nul]
+                if nul == -1:
+                    value = buff[offset:]
+                else:
+                    value = buff[offset:nul]
                 # return string without trailing '\0'
                 size = len(value) + 1
             elif type_ == 'ASCII':
@@ -299,10 +300,7 @@ class PakBus(object):
                 value = ((-1) ** sign * float(mant) / 10 ** exp, )
             else:
                 # default decoding scheme
-                try:
-                    value = struct.unpack(str(fmt), buff[offset:offset + size])
-                except:
-                    print(len(buff))
+                value = struct.unpack(str(fmt), buff[offset:offset + size])
 
             # un-tuple single values
             if len(value) == 1:
@@ -444,7 +442,7 @@ class PakBus(object):
         return msg
 
     def get_collectdata_cmd(self, tablenbr, tabledefsig, mode=0x04,
-                            P1=0, P2=0):
+                            p1=0, p2=0):
         '''Create Collect Data Command packet'''
         transac_id = self.transaction.next_id()
         # BMP5 Application Packet
@@ -454,16 +452,16 @@ class PakBus(object):
                                mode])
         # encode table number and signature
         msg += self.encode_bin(['UInt2', 'UInt2'], [tablenbr, tabledefsig])
-        # add P1 and P2 according to collect mode
+        # add p1 and p2 according to collect mode
         if (mode == 0x04) | (mode == 0x05):
             # only P1 used (type UInt4)
-            msg += self.encode_bin(['UInt4'], [P1])
+            msg += self.encode_bin(['UInt4'], [p1])
         elif (mode == 0x06) | (mode == 0x08):
             # P1 and P2 used (type UInt4)
-            msg += self.encode_bin(['UInt4', 'UInt4'], [P1, P2])
+            msg += self.encode_bin(['UInt4', 'UInt4'], [p1, p2])
         elif mode == 0x07:
             # P1 and P2 used (type NSec)
-            msg += self.encode_bin(['NSec', 'NSec'], [P1, P2])
+            msg += self.encode_bin(['NSec', 'NSec'], [p1, p2])
         # add field list = all fields
         msg += self.encode_bin(['UInt2'], [0])
         return b''.join((hdr, msg)), transac_id
@@ -562,40 +560,36 @@ class PakBus(object):
         [fd['DirVersion']], size = self.decode_bin(['Byte'], data[offset:])
         offset += size
         # Extract file entries
-        while True:
-            if len(data) <= offset:
-                break
-            file = {}  # file description
+        while len(data) > offset:
+            file_ = {}  # file description
             [filename], size = self.decode_bin(['ASCIIZ'], data[offset:])
-            print (filename)
             offset += size
 
             # end loop when file attribute list terminator reached
             if filename == '':
                 break
 
-            file['FileName'] = filename
+            file_['FileName'] = filename
             values, size = self.decode_bin(['UInt4', 'ASCIIZ'], data[offset:])
-            file['FileSize'], file['LastUpdate'] = values
+            file_['FileSize'], file_['LastUpdate'] = values
             offset += size
 
             # Read file attribute list
-            file['Attribute'] = []  # initialize file attribute list (up to 12)
+            file_['Attribute'] = []  # initialize file attribute list (up to 12)
             for i in range(12):
                 [attribute], size = self.decode_bin(['Byte'], data[offset:])
                 offset += size
                 if attribute:
                     # append file attribute to list
-                    file['Attribute'].append(attribute)
+                    file_['Attribute'].append(attribute)
                 else:
                     break  # End of attribute list reached
-            fd['files'].append(file)  # add file entry to list
+            fd['files'].append(file_)  # add file entry to list
         return fd
 
     def parse_tabledef(self, raw):
         '''Parse table definition.'''
         tabledef = []  # List of table definitions
-
         offset = 0  # offset into raw buffer
         fslversion, size = self.decode_bin(['Byte'], raw[offset:])
         offset += size
@@ -619,14 +613,10 @@ class PakBus(object):
             offset += size
 
             # Extract field definitions
-            while True:
+            (fieldtype,), size = self.decode_bin(['Byte'], raw[offset:])
+            offset += size
+            while fieldtype != 0:
                 fld = {}
-                (fieldtype,), size = self.decode_bin(['Byte'], raw[offset:])
-                offset += size
-
-                # end loop when field list terminator reached
-                if fieldtype == 0:
-                    break
 
                 # Extract bits from fieldtype
                 fld['ReadOnly'] = fieldtype >> 7  # only Bit 7
@@ -646,14 +636,14 @@ class PakBus(object):
 
                 # Extract AliasName list
                 fld['AliasName'] = []
-                while True:
+                aliasname = b'00'
+                # Alias names list terminator reached
+                while aliasname != b'':
                     values, size = self.decode_bin(['ASCIIZ'], raw[offset:])
                     aliasname = values[0]
                     offset += size
-                    # Alias names list terminator reached
-                    if aliasname == '':
-                        break
-                    fld['AliasName'].append(aliasname)
+                    if aliasname != b'':
+                        fld['AliasName'].append(aliasname)
 
                 # Extract other mandatory field definition items
                 types = ['ASCIIZ', 'ASCIIZ', 'ASCIIZ', 'UInt4', 'UInt4']
@@ -667,17 +657,19 @@ class PakBus(object):
 
                 # Extract sub dimension (if any)
                 fld['SubDim'] = []
-                while True:
+                subdim = 1
+                # sub-dimension list terminator reached
+                while subdim != 0:
                     (subdim,), size = self.decode_bin(['UInt4'], raw[offset:])
                     offset += size
-                    # sub-dimension list terminator reached
-                    if subdim == 0:
-                        break
-                    fld['SubDim'].append(subdim)
+                    if subdim != 0:
+                        fld['SubDim'].append(subdim)
 
                 # append current field definition to list
                 tblfld.append(fld)
 
+                (fieldtype,), size = self.decode_bin(['Byte'], raw[offset:])
+                offset += size
             # calculate table signature
             tblsig = self.compute_signature(raw[start:offset])
 
@@ -744,9 +736,10 @@ class PakBus(object):
 
                     # Get TimeOfRec for interval data or event-driven tables
                     if timeofrec:  # interval data
-                        time0 = timeofrec[0] + n * interval[0]
-                        time1 = timeofrec[1] + n * interval[1]
-                        record['TimeOfRec'] = (time0, time1)
+                        next_timeofrec = (timeofrec[0] + n * interval[0],
+                                          timeofrec[1] + n * interval[1])
+                        utc = True
+                        record['TimeOfRec'] = nsec_to_time(next_timeofrec, utc)
                     else:
                         # event-driven, time data precedes each record
                         values, size = self.decode_bin(['NSec'], raw[offset:])
@@ -766,7 +759,7 @@ class PakBus(object):
                     for field in fields:
                         fieldname = t_frag['Fields'][field - 1]['FieldName']
                         fieldtype = t_frag['Fields'][field - 1]['FieldType']
-                        dimension = t_frag[field - 1]['Dimension']
+                        dimension = t_frag['Fields'][field - 1]['Dimension']
                         if fieldtype == 'ASCII':
                             values, size = self.decode_bin([fieldtype],
                                                            raw[offset:],

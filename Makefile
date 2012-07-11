@@ -8,7 +8,7 @@ PYFLAKES_WHITELIST=$(shell find . -name "*.py" ! -path "./docs/*" \
 
 env:
 	rm ./env -fr
-	virtualenv ./env
+	virtualenv ./env -p python3
 	/bin/bash -c 'source ./env/bin/activate ; pip install pep8 ; \
         pip install pyflakes ; \
         pip install tox ; pip install -e . '
