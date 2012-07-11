@@ -83,19 +83,19 @@ class PakBus(object):
         self.dest_node = 0x001
         self.security_code = 0x0000
         self.transaction = Transaction()
-        LOGGER.info("Get device attention")
+        LOGGER.info('Get the attention')
         self.link.write(b'\xBD\xBD\xBD\xBD\xBD\xBD')
 
     def write(self, packet):
         '''Send packet over PakBus.'''
-        LOGGER.info("Packet data: %s" % bytes_to_hex(packet))
+        LOGGER.info('Packet data: %s' % bytes_to_hex(packet))
         LOGGER.info('Calculate signature for packet')
         sign = self.compute_signature(packet)
         LOGGER.info('Calculate signature nullifier to create packet')
         nullifier = self.compute_signature_nullifier(sign)
-        frame = self.quote(b"".join((packet, nullifier)))
-        packet = b"".join((b'\xBD', frame, b'\xBD'))
-        LOGGER.info("Write: %s" % bytes_to_hex(packet))
+        frame = self.quote(b''.join((packet, nullifier)))
+        packet = b''.join((b'\xBD', frame, b'\xBD'))
+        LOGGER.info('Write: %s' % bytes_to_hex(packet))
         self.link.write(packet)
 
     def read_one_byte(self):
@@ -125,16 +125,16 @@ class PakBus(object):
             byte = self.read_one_byte()
 
         # Unquote quoted characters
-        packet = b"".join(all_bytes)
-        LOGGER.info("Read packet: %s" % bytes_to_hex(packet))
+        packet = b''.join(all_bytes)
+        LOGGER.info('Read packet: %s' % bytes_to_hex(packet))
         packet = self.unquote(packet)
 
         # Calculate signature (should be zero)
         if self.compute_signature(packet):
-            LOGGER.error("Check signature : Error")
+            LOGGER.error('Check signature : Error')
             return None
         else:
-            LOGGER.info("Check signature : OK")
+            LOGGER.info('Check signature : OK')
             # Strip last 2 signature bytes and return packet
             return packet[:-2]
 
@@ -142,7 +142,7 @@ class PakBus(object):
         '''Wait for an incoming packet.'''
         LOGGER.info('Wait packet with transaction %s' % transac_id)
         data = self.read()
-        if data is None or data == b"":
+        if data is None or data == b'':
             return {}, {}
 
         hdr, msg = self.decode_packet(data)
@@ -161,7 +161,7 @@ class PakBus(object):
             self.write(pkt)
             return self.wait_packet(transac_id)
 
-        # Handle "please wait" packets
+        # Handle 'please wait' packets
         if msg['TranNbr'] == transac_id and msg['MsgType'] == 0xa1:
             timewait = msg['WaitSec']
             LOGGER.info('Please Wait Message packet <%s sec>' % timewait)
@@ -239,7 +239,6 @@ class PakBus(object):
 
     def encode_bin(self, types, values):
         '''Encode binary data according to data type.'''
-        LOGGER.info('Encode bin values')
         buff = []  # buffer for binary data
         for i, type_ in enumerate(types):
             fmt = self.DATATYPE[type_]['fmt']  # get default format for type_
@@ -253,7 +252,7 @@ class PakBus(object):
                 if is_py3:
                     print(value)
                     print(type(value))
-                    enc = struct.pack(fmt_, bytes(value, encoding="utf8"))
+                    enc = struct.pack(fmt_, bytes(value, encoding='utf8'))
                 else:
                     enc = struct.pack(fmt_, str(value))
             elif type_ == 'ASCII':
@@ -272,7 +271,6 @@ class PakBus(object):
 
     def decode_bin(self, types, buff, length=1):
         '''Decode binary data according to data type.'''
-        LOGGER.info('Decode bin values')
         offset = 0  # offset into buffer
         values = []  # list of values to return
         for type_ in types:
@@ -445,7 +443,7 @@ class PakBus(object):
                 msg['Settings'].append(item)
         return msg
 
-    def get_collectdata_cmd(self, tablenbr, tabledefsig, mode=0x05,
+    def get_collectdata_cmd(self, tablenbr, tabledefsig, mode=0x04,
                             P1=0, P2=0):
         '''Create Collect Data Command packet'''
         transac_id = self.transaction.next_id()
@@ -793,7 +791,7 @@ class PakBus(object):
 
     def __unicode__(self):
         name = self.__class__.__name__
-        return "<%s %s>" % (name, self.link)
+        return '<%s %s>' % (name, self.link)
 
     def __str__(self):
         return str(self.__unicode__())

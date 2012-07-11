@@ -23,7 +23,7 @@ pyflakes:
 	pyflakes ${PYFLAKES_WHITELIST}
 
 pep:
-	pep8 --first pycr1000
+	pep8 pycr1000
 
 doc:
 	cd docs; make html
