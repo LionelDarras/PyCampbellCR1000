@@ -8,13 +8,14 @@ PYFLAKES_WHITELIST=$(shell find . -name "*.py" ! -path "./docs/*" \
 
 env:
 	rm ./env -fr
-	virtualenv ./env -p python3
+	virtualenv ./env
 	/bin/bash -c 'source ./env/bin/activate ; pip install pep8 ; \
         pip install pyflakes ; \
+        pip install pytest-cov ; \
         pip install tox ; pip install -e . '
 
 test:
-	tox -- --url tcp:localhost:1112
+	tox
 
 pyflakes:
 	pyflakes ${PYFLAKES_WHITELIST}
