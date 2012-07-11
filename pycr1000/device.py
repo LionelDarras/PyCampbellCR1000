@@ -202,13 +202,6 @@ class CR1000(object):
         # remove transmission time
         return Dict(dict(msg['Stats']))
 
-    def getdata(self):
-        '''Get data.'''
-        LOGGER.info('Try get settings')
-        hdr, msg, send_time = self.send_wait(self.pakbus.get_getprogstat_cmd())
-        # remove transmission time
-        return Dict(dict(msg['Stats']))
-
     def bye(self):
         '''Send bye command.'''
         LOGGER.info("Send bye command")
