@@ -10,8 +10,6 @@
 
 '''
 from __future__ import unicode_literals
-import pytest
-
 from datetime import datetime, timedelta
 
 from ..logger import active_logger
@@ -22,13 +20,11 @@ from ..device import CR1000
 active_logger()
 
 
-@pytest.mark.cr1000
 def test_gettime(url):
     device = CR1000.from_url(url, 1)
     assert isinstance(device.gettime(), datetime)
 
 
-@pytest.mark.cr1000
 def test_settime(url):
     device = CR1000.from_url(url, 1)
     now = datetime.now().replace(second=10, microsecond=0)
@@ -41,7 +37,7 @@ def test_settime(url):
     assert tomorrow == device.settime(tomorrow).replace(second=10)
     device.settime(datetime.now())
 
-@pytest.mark.cr1000
+
 def test_settings(url):
     device = CR1000.from_url(url, 1)
     assert device.settings[0]['SettingId'] == 0
@@ -52,26 +48,22 @@ def test_settings(url):
     assert device.settings[0]['LargeValue'] == 0
 
 
-@pytest.mark.cr1000
 def test_list_files(url):
     device = CR1000.from_url(url, 1)
     assert len(device.list_files()) > 1
 
 
-@pytest.mark.cr1000
 def test_getfile(url):
     device = CR1000.from_url(url, 1)
     fd = device.getfile('CPU:CR1000_LABO.CR1')
     assert b"CR1000" in fd
 
 
-@pytest.mark.cr1000
 def test_list_tables(url):
     device = CR1000.from_url(url, 1)
-#    assert b"Public" in device.list_tables()
+    assert b"Public" in device.list_tables()
 
 
-@pytest.mark.cr1000
 def test_get_data(url):
     device = CR1000.from_url(url, 1)
     start_date = datetime.now() - timedelta(minutes=30)
@@ -81,7 +73,7 @@ def test_get_data(url):
     for item in data:
         assert start_date <= item["Datetime"] < stop_date
 
-@pytest.mark.cr1000
+
 def test_getprogstat(url):
     device = CR1000.from_url(url, 1)
     b"CR1000" in device.getprogstat()['OSVer']

@@ -13,11 +13,8 @@ env:
         pip install pyflakes ; \
         pip install tox ; pip install -e . '
 
-test_cr1000:
-	tox -- -m cr1000
-
-test_cr800:
-	tox -- -m cr800
+test:
+	tox -- --url tcp:localhost:1112
 
 pyflakes:
 	pyflakes ${PYFLAKES_WHITELIST}

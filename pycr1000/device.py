@@ -18,7 +18,7 @@ from pylink import link_from_url
 from .logger import LOGGER
 from .pakbus import PakBus
 from .exceptions import NoDeviceException
-from .compat import xrange, str
+from .compat import xrange, is_py3
 from .utils import cached_property, ListDict, Dict, nsec_to_time, time_to_nsec
 
 
@@ -147,30 +147,21 @@ class CR1000(object):
         data = self.getfile('.DIR')
         # List files in directory
         filedir = self.pakbus.parse_filedir(data)
-        return [str(item['FileName'], "utf-8") for item in filedir['files']]
+        return [item['FileName'] for item in filedir['files']]
 
     @cached_property
     def table_def(self):
         data = self.getfile('.TDF')
         # List tables
         tabledef = self.pakbus.parse_tabledef(data)
-        if not tabledef:
-            return
-        for item in tabledef:
-            item['Header']['TableName'] = \
-                str(item['Header']['TableName'], 'utf-8')
         return tabledef
 
     def list_tables(self):
-        names = []
-        for item in self.table_def:
-            names.append(str(item['Header']['TableName'], 'utf-8'))
-        return names
+        return [item['Header']['TableName'] for item in self.table_def]
 
     def _collect_data(self, tablename, start_date=None, stop_date=None):
         '''Collect fragment data from `tablename` until `start_date` and
         `stop_date` as ListDict.'''
-        records = []
         mode = 0x07  # collect until p1 and p2 (nsec)
         p1 = time_to_nsec(start_date or datetime(1990, 1, 1, 0, 0, 1))
         p2 = time_to_nsec(stop_date or datetime.now())
@@ -178,6 +169,8 @@ class CR1000(object):
         tabledef = self.table_def
         # Get table number
         tablenbr = None
+        if is_py3:
+            tablename = bytes(tablename, encoding="utf-8")
         for i, item in enumerate(tabledef):
             if item['Header']['TableName'] == tablename:
                 tablenbr = i + 1
@@ -203,7 +196,6 @@ class CR1000(object):
         for items in self.get_data_generator(tablename, start_date, stop_date):
             records.extend(items)
         return records
-
 
     def get_data_generator(self, tablename, start_date=None, stop_date=None):
         '''Get all data from `tablename` until `start_date` and `stop_date` as

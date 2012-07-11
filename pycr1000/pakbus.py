@@ -575,7 +575,8 @@ class PakBus(object):
             offset += size
 
             # Read file attribute list
-            file_['Attribute'] = []  # initialize file attribute list (up to 12)
+            file_['Attribute'] = []
+            # initialize file attribute list (up to 12)
             for i in range(12):
                 [attribute], size = self.decode_bin(['Byte'], data[offset:])
                 offset += size
