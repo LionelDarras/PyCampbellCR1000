@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 '''
-    pycr1000.pakbus
-    ---------------
+    PyCampbellCRX.pakbus
+    --------------------
 
-    Pakbus client
+    PakBus protocol Implementation.
 
     Original Authors: Dietrich Feist, Max Planck, Jena Germany (PyPak)
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
@@ -32,14 +32,14 @@ class Transaction(Singleton):
 
 
 class PakBus(object):
-    '''Inteface for a pakbus client. Defined here are all the
-    methods for performing the related request methods.
+    '''Inteface for a pakbus client.
 
-    :param url: A `PyLink` connection.
-    :parm dest_node: Destination node ID (12-bit int)
-    :parm src_node: Source node ID (12-bit int)
-    :parm security_code: 16-bit security code (optional)
+    :param link: A `PyLink` connection.
+    :parm dest_node: Destination node ID (12-bit int) (default 0x001)
+    :parm src_node: Source node ID (12-bit int) (default 0x802)
+    :parm security_code: 16-bit security code (default 0x0000)
     '''
+
     DATATYPE = {
         'Byte':     {'code':  1, 'fmt': 'B',   'size': 1},
         'UInt2':    {'code':  2, 'fmt': '>H',  'size': 2},
@@ -74,14 +74,13 @@ class PakBus(object):
     RING = 0x9
     READY = 0xA
     FINISHED = 0xB
-    PAUSE = 0xC
 
     def __init__(self, link, dest_node=0x001, src_node=0x802,
                  security_code=0x0000):
         self.link = link
-        self.src_node = 0x802
-        self.dest_node = 0x001
-        self.security_code = 0x0000
+        self.src_node = src_node
+        self.dest_node = dest_node
+        self.security_code = security_code
         self.transaction = Transaction()
         LOGGER.info('Get the attention')
         self.link.write(b'\xBD\xBD\xBD\xBD\xBD\xBD')
@@ -98,14 +97,6 @@ class PakBus(object):
         LOGGER.info('Write: %s' % bytes_to_hex(packet))
         self.link.write(packet)
 
-    def read_one_byte(self):
-        '''Read only one byte.'''
-        data = self.link.read(1)
-        if is_text(data):
-            return bytes(data.encode('utf-8'))
-        else:
-            return data
-
     def read(self):
         '''Receive packet over PakBus.'''
         all_bytes = []
@@ -115,14 +106,14 @@ class PakBus(object):
             if time.time() - begin > self.link.timeout:
                 return None
             # Read until first \xBD frame character
-            byte = self.read_one_byte()
+            byte = self._read_one_byte()
         while byte == b'\xBD':
             # Read unitl first character other than \xBD
-            byte = self.read_one_byte()
+            byte = self._read_one_byte()
         while byte != b'\xBD':
             # Read until next occurence of \xBD character
             all_bytes.append(byte)
-            byte = self.read_one_byte()
+            byte = self._read_one_byte()
 
         # Unquote quoted characters
         packet = b''.join(all_bytes)
@@ -138,8 +129,20 @@ class PakBus(object):
             # Strip last 2 signature bytes and return packet
             return packet[:-2]
 
+    def _read_one_byte(self):
+        '''Read only one byte.'''
+        data = self.link.read(1)
+        if is_text(data):
+            return bytes(data.encode('utf-8'))
+        else:
+            return data
+
     def wait_packet(self, transac_id):
-        '''Wait for an incoming packet.'''
+        '''Wait for an incoming packet.
+
+        :param transac_id: Expected transaction number.
+        '''
+
         LOGGER.info('Wait packet with transaction %s' % transac_id)
         data = self.read()
         if data is None or data == b'':
@@ -180,8 +183,8 @@ class PakBus(object):
                     hops=0x0):
         '''Generate PakBus header.
 
-        :param hi_proto: Higher level protocol code (4 bits);
-                         0x0: PakCtrl, 0x1: BMP5
+        :param hi_proto: Higher level protocol code (4 bits). 0x0: PakCtrl,
+                         0x1: BMP5
         :param exp_more: Whether client should expect another packet (2 bits)
         :param link_state: Link state (4 bits)
         :param hops: Number of hops to destination (4 bits)
@@ -224,14 +227,14 @@ class PakBus(object):
         return nullif
 
     def quote(self, packet):
-        '''Quote PakBus packet.'''
+        '''Quote the PakBus packet.'''
         LOGGER.info('Quote packet')
         packet = packet.replace(b'\xBC', b'\xBC\xDC')
         packet = packet.replace(b'\xBD', b'\xBC\xDD')
         return packet
 
     def unquote(self, packet):
-        '''Unquote PakBus packet.'''
+        '''Unquote the PakBus packet.'''
         LOGGER.info('Unquote packet')
         packet = packet.replace(b'\xBC\xDD', b'\xBD')
         packet = packet.replace(b'\xBC\xDC', b'\xBC')
@@ -403,7 +406,7 @@ class PakBus(object):
         return b''.join([hdr, msg]), transac_id
 
     def unpack_getsettings_response(self, msg):
-        '''Create Getsettings Response packet.'''
+        '''Unpack Getsettings Response packet.'''
         (msg['Outcome'],), size = self.decode_bin(['Byte'], msg['raw'][2:])
         offset = size + 2
 
@@ -443,7 +446,15 @@ class PakBus(object):
 
     def get_collectdata_cmd(self, tablenbr, tabledefsig, mode=0x04,
                             p1=0, p2=0):
-        '''Create Collect Data Command packet'''
+        '''Create Collect Data Command packet
+
+        :param tablenbr: Table number
+        :param tabledefsig: Table defintion signature
+        :param mode: Collection mode code (p1 and Pp2 will be used
+                     depending on value)
+        :param p1: 1st parameter used to specify what to collect (optional)
+        :param p2: 2nd parameter used to specify what to collect (optional)
+        '''
         transac_id = self.transaction.next_id()
         # BMP5 Application Packet
         hdr = self.pack_header(0x1)
@@ -521,7 +532,15 @@ class PakBus(object):
 
     def get_fileupload_cmd(self, filename, offset=0x00000000, swath=0x0200,
                            closeflag=0x01, transac_id=None):
-        '''Create File Upload Command packet.'''
+        '''Create Fileupload Command packet.
+
+        :param filename: File name as string
+        :param offset: Byte offset into the file or fragment
+        :param swath: Number of bytes to read
+        :param closeflag: Flag if file should be closed after this transaction
+        :param transac_id: Transaction number for continuig partial reads
+                           (required by OS>=17!)
+        '''
         if  transac_id is None:
             transac_id = self.transaction.next_id()
         # BMP5 Application Packet
@@ -533,14 +552,14 @@ class PakBus(object):
         return b''.join((hdr, msg)), transac_id
 
     def unpack_fileupload_response(self, msg):
-        '''Unpack File Upload Response packet.'''
+        '''Unpack Fileupload Response packet.'''
         values, size = self.decode_bin(['Byte', 'UInt4'], msg['raw'][2:7])
         msg['RespCode'], msg['FileOffset'] = values
         msg['FileData'] = msg['raw'][7:]
         return msg
 
     def unpack_pleasewait_response(self, msg):
-        '''Unpack Pease Wait Response packet.'''
+        '''Unpack PeaseWait Response packet.'''
         values, size = self.decode_bin(['Byte', 'UInt2'], msg['raw'][2:])
         msg['CmdMsgType'], msg['WaitSec'] = values
         return msg
@@ -549,7 +568,7 @@ class PakBus(object):
         '''Create Bye Command packet.'''
         transac_id = self.transaction.next_id()
         # PakBus Control Packet
-        hdr = self.pack_header(0x0, 0x0, 0xB)
+        hdr = self.pack_header(0x0, 0x0, self.FINISHED)
         msg = self.encode_bin(['Byte', 'Byte'], [0x0d, 0x0])
         return b''.join((hdr, msg)), transac_id
 
@@ -792,3 +811,4 @@ class PakBus(object):
 
     def __repr__(self):
         return str(self.__unicode__())
+

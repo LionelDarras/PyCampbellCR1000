@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Frozen-Flask documentation build configuration file, created by
-# sphinx-quickstart on Fri Dec 24 15:20:25 2010.
+# sphinx-quickstart
 #
 # This file is execfile()d with the current directory set to its containing
 # dir.
@@ -47,7 +47,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'PyCR1000'
+project = u'PyCampbellCRX'
 copyright = u'2012, Salem Harrache'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -58,7 +58,7 @@ copyright = u'2012, Salem Harrache'
 #release = '0.1dev'
 import re
 with open(os.path.join(os.path.dirname(__file__), '..',
-                       'pycr1000', '__init__.py')) as init_py:
+                       'pycampbellcrx', '__init__.py')) as init_py:
     release = re.search("VERSION = '([^']+)'", init_py.read()).group(1)
 # The short X.Y version.
 version = release.rstrip('dev')
@@ -109,7 +109,7 @@ html_theme = 'flask'
 # documentation.
 #html_theme_options = {}
 html_theme_options = {
-     'index_logo': 'pycr1000.jpg',
+     'index_logo': 'pycampbellcrx.jpg',
      'index_logo_height': '105px'
 }
 
@@ -179,7 +179,7 @@ html_sidebars = {'**': ['sidebarintro.html', 'localtoc.html']}
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'PyCR1000-doc'
+htmlhelp_basename = 'PyCampbellCRX-doc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -193,13 +193,13 @@ latex_font_size = '12pt'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'PyCR1000.tex', u'PyCR1000 Documentation',
+  ('index', 'PyCampbellCRX.tex', u'PyCampbellCRX Documentation',
    u'Salem Harrache', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-latex_logo = '_static/pycr1000.jpg'
+latex_logo = '_static/pycampbellcrx.jpg'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
@@ -226,6 +226,7 @@ latex_logo = '_static/pycr1000.jpg'
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'pycr1000', u'PyCR1000 Documentation',
+    ('index', 'pycampbellcrx', u'PyCampbellCRX Documentation',
      [u'Salem Harrache'], 1)
 ]
+

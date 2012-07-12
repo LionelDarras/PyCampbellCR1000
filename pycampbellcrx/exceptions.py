@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-    pycr1000.exceptions
-    -------------------
+    PyCampbellCR1000.exceptions
+    ---------------------------
 
     Exceptions
 
@@ -14,7 +14,8 @@ from __future__ import division, unicode_literals
 
 class NoDeviceException(Exception):
     '''Can not access to device.'''
-    value = __doc__
+    def __str__(self):
+        return self.__doc__
 
 
 class BadSignatureException(Exception):
@@ -33,3 +34,4 @@ class DeliveryFailureException(Exception):
     '''Delivery failure.'''
     def __str__(self):
         return self.__doc__
+

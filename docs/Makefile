@@ -19,7 +19,6 @@ help:
 	@echo "  html    to make standalone HTML files"
 	@echo "  latex   to make LaTeX files, you can set PAPER=a4 or PAPER=letter"
 	@echo "  pdf     to make LaTeX files and run them through pdflatex"
-	@echo "  site    to make PDF and html"
 
 clean:
 	-rm -rf $(BUILDDIR)/*
@@ -40,5 +39,3 @@ pdf: latex
 	make -C _build/latex all-pdf
 	@echo "pdflatex finished; the PDF files are in _build/latex."
 
-site: html pdf
-	mv ./_build/latex/PyCR1000.pdf ./_build/html/PyCR1000.pdf

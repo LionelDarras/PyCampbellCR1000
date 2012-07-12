@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-    pycr1000.utils
-    --------------
+    PyCampbellCRX.utils
+    -------------------
 
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
     :license: GNU GPL v3.

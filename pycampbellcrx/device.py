@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 '''
-    pycr1000.device
-    ---------------
+    PyCampbellCRX.client
+    --------------------
 
-    Allows data query of CR1000 device
+    Allows data query of Campbell CR1000-type devices.
 
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
     :license: GNU GPL v3.
@@ -27,17 +27,18 @@ class CR1000(object):
     data and parsing it into usable scalar values.
 
     :param link: A `PyLink` connection.
-    :parm dest_node: Destination node ID (12-bit int)
-    :parm src_node: Source node ID (12-bit int)
-    :parm security_code: 16-bit security code (optional)
+    :parm dest_node: Destination node ID (12-bit int) (default 0x001)
+    :parm src_node: Source node ID (12-bit int) (default 0x802)
+    :parm security_code: 16-bit security code (default 0x0000)
     '''
     connected = False
 
     def __init__(self, link, dest_node=0x001, src_node=0x802,
                  security_code=0x0000):
         link.open()
-        LOGGER.info("init CR1000")
+        LOGGER.info("init client")
         self.pakbus = PakBus(link, dest_node, src_node, security_code)
+
         for i in xrange(3):
             try:
                 if self.ping_node():
@@ -63,8 +64,8 @@ class CR1000(object):
 
     def send_wait(self, cmd):
         '''Send command and wait for response packet.'''
-        begin = time.time()
         packet, transac_id = cmd
+        begin = time.time()
         self.pakbus.write(packet)
         # wait response packet
         response = self.pakbus.wait_packet(transac_id)
@@ -151,20 +152,23 @@ class CR1000(object):
 
     @cached_property
     def table_def(self):
+        '''Get table definition.'''
         data = self.getfile('.TDF')
         # List tables
         tabledef = self.pakbus.parse_tabledef(data)
         return tabledef
 
     def list_tables(self):
+        '''Get list of tables.'''
         return [item['Header']['TableName'] for item in self.table_def]
 
-    def _collect_data(self, tablename, start_date=None, stop_date=None):
+    def _collect_data(self, tablename, start_date, stop_date):
         '''Collect fragment data from `tablename` until `start_date` and
         `stop_date` as ListDict.'''
+        LOGGER.info('Send collect_data cmd')
         mode = 0x07  # collect until p1 and p2 (nsec)
-        p1 = time_to_nsec(start_date or datetime(1990, 1, 1, 0, 0, 1))
-        p2 = time_to_nsec(stop_date or datetime.now())
+        p1 = time_to_nsec(start_date)
+        p2 = time_to_nsec(stop_date)
 
         tabledef = self.table_def
         # Get table number
@@ -189,9 +193,12 @@ class CR1000(object):
         # Return parsed record data and flag if more records exist
         return data, more
 
-    def get_all_data(self, tablename, start_date=None, stop_date=None):
+    def get_data(self, tablename, start_date=None, stop_date=None):
         '''Get all data from `tablename` until `start_date` and `stop_date` as
-        ListDict.'''
+        ListDict.
+
+        :param start_date: The beginning datetime record.
+        :param stop_date: The stopping datetime record.'''
         records = ListDict()
         for items in self.get_data_generator(tablename, start_date, stop_date):
             records.extend(items)
@@ -199,26 +206,34 @@ class CR1000(object):
 
     def get_data_generator(self, tablename, start_date=None, stop_date=None):
         '''Get all data from `tablename` until `start_date` and `stop_date` as
-        ListDict generator.'''
+        ListDict generator.
+
+        :param start_date: The beginning datetime record.
+        :param stop_date: The stopping datetime record.
+        '''
+        start_date = start_date or datetime(1990, 1, 1, 0, 0, 1)
+        stop_date = stop_date or datetime.now()
         more = True
         while more:
             records = ListDict()
             data, more = self._collect_data(tablename, start_date, stop_date)
             for rec in data:
                 for item in rec['RecFrag']:
-                    new_rec = Dict()
-                    new_rec["Datetime"] = item['TimeOfRec']
-                    new_rec["RecNbr"] = item['RecNbr']
-                    for key in item['Fields']:
-                        new_rec["%s" % key] = item['Fields'][key]
-                    records.append(new_rec)
-            yield records
-            records = ListDict()
-            start_date = new_rec["Datetime"]
+                    if start_date <= item['TimeOfRec'] < stop_date:
+                        new_rec = Dict()
+                        new_rec["Datetime"] = item['TimeOfRec']
+                        new_rec["RecNbr"] = item['RecNbr']
+                        for key in item['Fields']:
+                            new_rec["%s" % key] = item['Fields'][key]
+                        records.append(new_rec)
+            if records:
+                records = records.sorted_by('Datetime')
+                start_date = records[-1]["Datetime"]
+                yield records.sorted_by('Datetime')
 
     def getprogstat(self):
         '''Get Programming Statistics.'''
-        LOGGER.info('Try get settings')
+        LOGGER.info('Try get programming statistics')
         hdr, msg, send_time = self.send_wait(self.pakbus.get_getprogstat_cmd())
         # remove transmission time
         return Dict(dict(msg['Stats']))
@@ -234,3 +249,5 @@ class CR1000(object):
     def __del__(self):
         '''Send bye cmd when object is deleted.'''
         self.bye()
+        self.link.close()
+

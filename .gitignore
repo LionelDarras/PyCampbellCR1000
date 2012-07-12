@@ -6,6 +6,7 @@
 *.egg
 *.egg-info
 env
+__*__
 dist
 build
 eggs
@@ -20,4 +21,5 @@ pip-log.txt
 
 # Unit test / coverage reports
 .coverage
+coverage_html_report
 .tox

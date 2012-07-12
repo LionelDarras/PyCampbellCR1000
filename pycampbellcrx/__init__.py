@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-    pycr1000
-    --------
+    PyCampbellCRX
+    -------------
 
     The public API and command-line interface to PyCR1000.
 

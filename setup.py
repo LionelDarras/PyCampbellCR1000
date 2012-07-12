@@ -1,9 +1,9 @@
 # coding: utf8
 '''
-    PyCR1000
-    --------
+    PyCampbellCRX
+    -------------
 
-    Communication tools for Campbell CR1000 Datalogger.
+    Communication tools for Campbell CR1000-type Datalogger.
 
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
     :license: BSD, see LICENSE for details.
@@ -36,11 +36,11 @@ if sys.version_info < (2, 7) or (3,) <= sys.version_info < (3, 2):
     REQUIREMENTS.append('argparse')
 
 setup(
-    name='PyCR1000',
+    name='PyCampbellCRX',
     version='0.1',
-    url='https://github.com/SalemHarrache/PyCR1000',
+    url='https://github.com/SalemHarrache/PyCampbellCRX',
     license='GNU GPL v3',
-    description='Communication tools for Campbell CR1000 Datalogger',
+    description='Communication tools for Campbell CR1000-type Datalogger',
     long_description=README + '\n\n' + CHANGES,
     author='Salem Harrache',
     author_email='salem.harrache@gmail.com',
@@ -63,10 +63,10 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     install_requires=REQUIREMENTS,
-    test_suite='pycr1000.tests',
+    test_suite='pycampbellcrx.tests',
     entry_points={
         'console_scripts': [
-            'pycampbell = pycr1000.__main__:main'
+            'pycr1000 = pycampbellcrx.__main__:main'
         ],
     },
 )

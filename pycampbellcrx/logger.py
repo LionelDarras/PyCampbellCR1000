@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-    pycr1000.logger
-    ---------------
+    PyCampbellCRX.logger
+    --------------------
 
     Logging setup.
 
@@ -14,13 +14,13 @@ import logging
 from .compat import NullHandler
 
 
-LOGGER = logging.getLogger('pycr1000')
+LOGGER = logging.getLogger('pycampbellcr1000')
 LOGGER.addHandler(NullHandler())
 
 
 def active_logger():
     '''Initialize a speaking logger with stream handler (stderr).'''
-    LOGGER = logging.getLogger('pycr1000')
+    LOGGER = logging.getLogger('pycampbellcr1000')
 
     LOGGER.setLevel(logging.INFO)
 

@@ -2,8 +2,10 @@ recursive-include docs *
 prune docs/_build
 include AUTHORS.rst
 include CHANGES.rst
-include README.rst
+include conftest.py
 include COPYING
 include Makefile
+include MANIFEST.in
 include pytest.ini
+include README.rst
 include tox.ini

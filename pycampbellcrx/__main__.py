@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 '''
-    pycr1000
-    --------
+    PyCampbellCRX.main
+    ------------------
 
-    The public API and command-line interface to PyVPDriver.
+    The public API and command-line interface to PyCampbellCR1000.
 
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
     :license: GNU GPL v3.
@@ -24,8 +24,10 @@ NOW = datetime.now().strftime("%Y-%m-%d %H:%M")
 
 def main():
     '''Parse command-line arguments and execute CR1000 command.'''
-    parser = argparse.ArgumentParser(prog='pycr1000',
-                                     description='CR1000 communication tools')
+    parser = argparse.ArgumentParser(prog='PyCR1000',
+                                     description='Communication tools for '
+                                                 'Campbell CR1000-type '
+                                                 'Datalogger')
 
     parser.add_argument('--version', action='version',
                         version='PyCR1000 version %s' % VERSION,

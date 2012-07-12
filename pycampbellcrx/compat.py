@@ -1,7 +1,7 @@
 # coding: utf8
 '''
-    pycr1000.compat
-    ---------------
+    PyCampbellCR1000.compat
+    -----------------------
 
     Workarounds for compatibility with Python 2 and 3 in the same code base.
 
@@ -62,13 +62,13 @@ if is_py2:
         from collections import OrderedDict
     from StringIO import StringIO
 
+    ord = ord
+    chr = chr
+
     def to_char(string):
         if len(string) == 0:
             return bytes('')
         return bytes(string[0])
-
-    ord = ord
-    chr = chr
 
     bytes = str
     str = unicode
@@ -81,13 +81,13 @@ elif is_py3:
     from logging import NullHandler
     from io import StringIO
 
+    ord = lambda x: x
+    chr = lambda x: bytes([x])
+
     def to_char(string):
         if len(string) == 0:
             return str('')
         return str(string[0])
-
-    ord = lambda x: x
-    chr = lambda x: bytes([x])
 
     str = str
     bytes = bytes
@@ -103,3 +103,4 @@ def is_text(data):
 def is_bytes(data):
     '''Check if data is bytes instance'''
     return isinstance(data, bytes)
+
