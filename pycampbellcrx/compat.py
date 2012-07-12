@@ -103,4 +103,3 @@ def is_text(data):
 def is_bytes(data):
     '''Check if data is bytes instance'''
     return isinstance(data, bytes)
-

@@ -249,5 +249,3 @@ class CR1000(object):
     def __del__(self):
         '''Send bye cmd when object is deleted.'''
         self.bye()
-        self.link.close()
-

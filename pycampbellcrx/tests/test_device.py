@@ -1,6 +1,6 @@
 # coding: utf8
 '''
-    PyCampbellCRX.tests.test_client
+    PyCampbellCRX.tests.test_device
     -------------------------------
 
     The device test suite for.
@@ -20,7 +20,7 @@ from ..device import CR1000
 from ..exceptions import NoDeviceException
 
 
-# active logging for tests
+#active logging for tests
 active_logger()
 
 
@@ -29,6 +29,7 @@ def test_no_device(url):
     link.settimeout(1)
     with assert_raises(NoDeviceException, 'Can not access to device.'):
         device = CR1000(link, dest_node=0x12)
+        device.ping_node()
     link.close()
 
 
@@ -79,7 +80,7 @@ def test_list_tables(url):
 def test_get_data_generator(url):
     device = CR1000.from_url(url, 1)
     generator = device.get_data_generator('Table1', None, None)
-    first_records = generator.next()
+    first_records = next(generator)
     assert len(first_records) > 0
     rec = first_records[0]
     for next_rec in first_records[1:]:
@@ -100,4 +101,3 @@ def test_get_data(url):
 def test_getprogstat(url):
     device = CR1000.from_url(url, 1)
     b"CR" in device.getprogstat()['OSVer']
-

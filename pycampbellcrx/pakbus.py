@@ -802,13 +802,9 @@ class PakBus(object):
     def __del__(self):
         self.link.close()
 
-    def __unicode__(self):
+    def __str__(self):
         name = self.__class__.__name__
         return '<%s %s>' % (name, self.link)
 
-    def __str__(self):
-        return str(self.__unicode__())
-
     def __repr__(self):
-        return str(self.__unicode__())
-
+        return '%s' % self.__str__()

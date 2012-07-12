@@ -34,4 +34,3 @@ class DeliveryFailureException(Exception):
     '''Delivery failure.'''
     def __str__(self):
         return self.__doc__
-

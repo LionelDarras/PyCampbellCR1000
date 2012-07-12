@@ -23,4 +23,3 @@ def assert_raises(exception_class, message_part):
         yield
     message = '%s' % exception
     assert message_part.lower() in message.lower()
-
