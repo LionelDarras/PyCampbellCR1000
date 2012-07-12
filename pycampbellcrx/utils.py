@@ -94,8 +94,8 @@ def time_to_nsec(dtime, utc=False):
 
 def bytes_to_hex(byte):
     '''Convert a bytearray to it's hex string representation.'''
-    if is_py3 >= 3:
-        hexstr = str(binascii.hexlify(byte), "utf-8")
+    if is_py3:
+        hexstr = binascii.hexlify(byte).decode("utf-8")
     else:
         hexstr = str(binascii.hexlify(byte))
     data = []
@@ -107,19 +107,6 @@ def bytes_to_hex(byte):
 def hex_to_bytes(hexstr):
     '''Convert a string hex byte values into a byte string.'''
     return binascii.unhexlify(hexstr.replace(' ', '').encode('utf-8'))
-
-
-def binary_to_int(buf, start=0, stop=None):
-    '''Convert binary string representation to integer.
-    E.g.
-    >>> binary_to_int('1111110')
-    126
-    >>> binary_to_int('1111110', 0, 2)
-    2
-    >>> binary_to_int('1111110', 0, 3)
-    6
-    '''
-    return int(buf[::-1][start:(stop or len(buf))][::-1], 2)
 
 
 def csv_to_dict(file_input, delimiter=','):
