@@ -3,8 +3,8 @@ SHELL := /bin/bash
 # these files should pass pyflakes
 # exclude ./env/, which may contain virtualenv packages
 PYFLAKES_WHITELIST=$(shell find . -name "*.py" ! -path "./docs/*" \
-                    ! -path "./.tox/*" ! -path "./pycampbellcrx/__init__.py" \
-                    ! -path "./pycampbellcrx/compat.py" ! -path "./env/*")
+                    ! -path "./.tox/*" ! -path "./pycampbellcr1000/__init__.py" \
+                    ! -path "./pycampbellcr1000/compat.py" ! -path "./env/*")
 
 env:
 	rm ./env -fr
@@ -20,7 +20,7 @@ pyflakes:
 	pyflakes ${PYFLAKES_WHITELIST}
 
 pep:
-	pep8 pycampbellcrx
+	pep8 pycampbellcr1000
 
 doc:
 	cd docs; make html
@@ -33,4 +33,3 @@ dist:
 
 upload:
 	python setup.py sdist upload
-

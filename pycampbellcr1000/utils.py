@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-    PyCampbellCRX.utils
+    PyCampbellCR1000.utils
     -------------------
 
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.

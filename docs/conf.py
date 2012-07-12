@@ -47,7 +47,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'PyCampbellCRX'
+project = u'PyCampbellCR1000'
 copyright = u'2012, Salem Harrache'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -58,7 +58,7 @@ copyright = u'2012, Salem Harrache'
 #release = '0.1dev'
 import re
 with open(os.path.join(os.path.dirname(__file__), '..',
-                       'pycampbellcrx', '__init__.py')) as init_py:
+                       'pycampbellcr1000', '__init__.py')) as init_py:
     release = re.search("VERSION = '([^']+)'", init_py.read()).group(1)
 # The short X.Y version.
 version = release.rstrip('dev')
@@ -109,7 +109,7 @@ html_theme = 'flask'
 # documentation.
 #html_theme_options = {}
 html_theme_options = {
-     'index_logo': 'pycampbellcrx.jpg',
+     'index_logo': 'pycampbellcr1000.jpg',
      'index_logo_height': '105px'
 }
 
@@ -179,7 +179,7 @@ html_sidebars = {'**': ['sidebarintro.html', 'localtoc.html']}
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'PyCampbellCRX-doc'
+htmlhelp_basename = 'PyCampbellCR1000-doc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -193,13 +193,13 @@ latex_font_size = '12pt'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'PyCampbellCRX.tex', u'PyCampbellCRX Documentation',
+  ('index', 'PyCampbellCR1000.tex', u'PyCampbellCR1000 Documentation',
    u'Salem Harrache', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-latex_logo = '_static/pycampbellcrx.jpg'
+latex_logo = '_static/pycampbellcr1000.jpg'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
@@ -226,7 +226,6 @@ latex_logo = '_static/pycampbellcrx.jpg'
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'pycampbellcrx', u'PyCampbellCRX Documentation',
+    ('index', 'pycampbellcr1000', u'PyCampbellCR1000 Documentation',
      [u'Salem Harrache'], 1)
 ]
-

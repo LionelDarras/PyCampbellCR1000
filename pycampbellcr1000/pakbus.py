@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 '''
-    PyCampbellCRX.pakbus
-    --------------------
+    PyCampbellCR1000.pakbus
+    -----------------------
 
     PakBus protocol Implementation.
 
-    Original Authors: Dietrich Feist, Max Planck, Jena Germany (PyPak)
+    Original Author: Dietrich Feist, Max Planck Institute for Biogeochemistry,
+                     Jena Germany (PyPak)
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
     :license: GNU GPL v3.
 

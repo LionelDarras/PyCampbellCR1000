@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-    PyCampbellCRX.client
-    --------------------
+    PyCampbellCR1000.client
+    -----------------------
 
     Allows data query of Campbell CR1000-type devices.
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-    PyCampbellCRX.main
-    ------------------
+    PyCampbellCR1000.main
+    ---------------------
 
     The public API and command-line interface to PyCampbellCR1000.
 

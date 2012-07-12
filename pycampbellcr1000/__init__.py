@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 '''
-    PyCampbellCRX
-    -------------
+    PyCampbellCR1000
+    ----------------
 
-    The public API and command-line interface to PyCR1000.
+    The public API and command-line interface to PyCampbellCR1000.
 
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
     :license: GNU GPL v3.

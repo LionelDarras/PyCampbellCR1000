@@ -1,2 +1,2 @@
-PyCampbellCRX
-=============
+PyCampbellCR1000
+================
