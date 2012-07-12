@@ -304,7 +304,10 @@ class PakBus(object):
                 value = ((-1) ** sign * float(mant) / 10 ** exp, )
             else:
                 # default decoding scheme
-                value = struct.unpack(str(fmt), buff[offset:offset + size])
+                if buff[offset:offset + size]:
+                    value = struct.unpack(str(fmt), buff[offset:offset + size])
+                else:
+                    value = ''
 
             # un-tuple single values
             if len(value) == 1:
