@@ -36,6 +36,9 @@ class CR1000(object):
     def __init__(self, link, dest_node=0x001, src_node=0x802,
                  security_code=0x0000):
         link.open()
+        # hack socket..
+        old_timeout = link.timeout
+        link.settimeout(1)
         LOGGER.info("init client")
         self.pakbus = PakBus(link, dest_node, src_node, security_code)
 
@@ -46,9 +49,9 @@ class CR1000(object):
             except NoDeviceException:
                 self.pakbus.link.close()
                 self.pakbus.link.open()
-
         if not self.connected:
             raise NoDeviceException()
+        link.settimeout(old_timeout)
 
     @classmethod
     def from_url(cls, url, timeout=10, dest_node=0x001, src_node=0x802,
@@ -236,7 +239,10 @@ class CR1000(object):
         LOGGER.info('Try get programming statistics')
         hdr, msg, send_time = self.send_wait(self.pakbus.get_getprogstat_cmd())
         # remove transmission time
-        return Dict(dict(msg['Stats']))
+        data = Dict(dict(msg['Stats']))
+        if data:
+            data['CompTime'] = nsec_to_time(data['CompTime'])
+        return data
 
     def bye(self):
         '''Send bye command.'''

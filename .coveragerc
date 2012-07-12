@@ -1,4 +1,5 @@
 [run]
+omit = pycampbellcr1000/tests/*
 branch = True
 
 [report]
