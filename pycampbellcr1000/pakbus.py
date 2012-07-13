@@ -762,8 +762,7 @@ class PakBus(object):
                     if timeofrec:  # interval data
                         next_timeofrec = (timeofrec[0] + n * interval[0],
                                           timeofrec[1] + n * interval[1])
-                        utc = True
-                        record['TimeOfRec'] = nsec_to_time(next_timeofrec, utc)
+                        record['TimeOfRec'] = nsec_to_time(next_timeofrec)
                     else:
                         # event-driven, time data precedes each record
                         values, size = self.decode_bin(['NSec'], raw[offset:])

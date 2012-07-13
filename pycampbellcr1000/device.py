@@ -220,19 +220,29 @@ class CR1000(object):
         while more:
             records = ListDict()
             data, more = self._collect_data(tablename, start_date, stop_date)
-            for rec in data:
-                for item in rec['RecFrag']:
-                    if start_date <= item['TimeOfRec'] < stop_date:
+            for i, rec in enumerate(data):
+                if not rec["NbrOfRecs"]:
+                    more = False
+                    break
+                for j, item in enumerate(rec['RecFrag']):
+                    if start_date <= item['TimeOfRec'] <= stop_date:
+                        start_date = item['TimeOfRec']
+                        # for no duplicate record
+                        if more and ((j == (len(rec['RecFrag']) - 1))
+                                     and (i == (len(data) - 1))):
+                            break
                         new_rec = Dict()
                         new_rec["Datetime"] = item['TimeOfRec']
                         new_rec["RecNbr"] = item['RecNbr']
                         for key in item['Fields']:
                             new_rec["%s" % key] = item['Fields'][key]
                         records.append(new_rec)
+
             if records:
                 records = records.sorted_by('Datetime')
-                start_date = records[-1]["Datetime"]
                 yield records.sorted_by('Datetime')
+            else:
+                more = False
 
     def getprogstat(self):
         '''Get Programming Statistics.'''
