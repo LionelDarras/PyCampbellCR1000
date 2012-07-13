@@ -9,6 +9,7 @@
     :license: GNU GPL v3.
 
 '''
+import os
 import argparse
 
 from datetime import datetime
@@ -16,8 +17,9 @@ from datetime import datetime
 # Make sure the logger is configured early:
 from . import VERSION
 from .logger import active_logger
-from .compat import stdout
+from .compat import stdout, is_bytes
 from .device import CR1000
+from .utils import bytes_to_hex, csv_to_dict, ListDict
 
 
 NOW = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -44,24 +46,76 @@ def getprogstat_cmd(args, device):
 
 
 def getsettings_cmd(args, device):
-    pass
+    '''Getsettings command.'''
+    args.delim = args.delim.decode("string-escape")
+    data = device.settings
+    for item in data:
+        if is_bytes(item["SettingValue"]):
+            item["SettingValue"] = bytes_to_hex(item["SettingValue"])
+    args.output.write("%s" % data.to_csv(delimiter=args.delim))
 
 
 def listfiles_cmd(args, device):
-    pass
+    '''Listfiles command.'''
+    for filename in device.list_files():
+        print(filename.decode('utf-8'))
 
 
 def listtables_cmd(args, device):
-    pass
+    '''Listtables command.'''
+    for tablename in device.list_tables():
+        print(tablename.decode('utf-8'))
 
 
-def getdata_cmd(args, device):
-    pass
+def getdata_cmd(args, device, header=True, exclude_first=False):
+    '''Get data command.'''
+    args.delim = args.delim.decode("string-escape")
+    if args.start is not None:
+        args.start = datetime.strptime(args.start, "%Y-%m-%d %H:%M")
+    if args.stop is not None:
+        args.stop = datetime.strptime(args.stop, "%Y-%m-%d %H:%M")
+    print("Your download is starting.")
+    total_records = 0
+    generator = device.get_data_generator(args.table, args.start, args.stop)
+    for i, records in enumerate(generator):
+        if exclude_first:
+            records = ListDict(records[1:])
+            exclude_first = False
+        total_records += len(records)
+        print("Packet %d with %d records" % (i, len(records)))
+        args.output.write("%s" % records.to_csv(delimiter=args.delim,
+                                                header=header))
+        if header:
+            header = False
+
+    print("---------------------------")
+    if total_records == 0:
+        print("No new records were found﻿")
+    elif total_records == 1:
+        print("1 new record was found")
+    else:
+        print("%d new records were found" % total_records)
 
 
 def update_cmd(args, device):
-    pass
-
+    '''Update command.'''
+    # create file if not exist
+    with file(args.db, 'a'):
+        os.utime(args.db, None)
+    with open(args.db, 'r+a') as file_db:
+        db = csv_to_dict(file_db, delimiter=args.delim)
+        args.start = None
+        args.stop = None
+        if len(db) > 0:
+            db = db.sorted_by("Datetime", reverse=True)
+            format = "%Y-%m-%d %H:%M:%S"
+            start_date = datetime.strptime(db[0]['Datetime'], format)
+            # exclude this record
+            args.start = start_date.strftime("%Y-%m-%d %H:%M")
+            args.output = file_db
+            getdata_cmd(args, device, header=False, exclude_first=True)
+        else:
+            getdata_cmd(args, device, header=True)
 
 
 def get_cmd_parser(cmd, subparsers, help, func):
@@ -73,8 +127,8 @@ def get_cmd_parser(cmd, subparsers, help, func):
                         help='Display log')
     parser.add_argument('url', action="store",
                         help="Specifiy URL for connection link. "
-                             "E.g. tcp:iphost:port "
-                             "or serial:/dev/ttyUSB0:19200:8N1")
+                        "E.g. tcp:iphost:port "
+                        "or serial:/dev/ttyUSB0:19200:8N1")
     parser.set_defaults(func=func)
     return parser
 
@@ -117,6 +171,11 @@ def main():
     subparser = get_cmd_parser('getsettings', subparsers,
                                help='Retrieves the datalogger settings.',
                                func=getsettings_cmd)
+    subparser.add_argument('--output', action='store', default=stdout,
+                           type=argparse.FileType('w', 0),
+                           help='Filename where output is written')
+    subparser.add_argument('--delim', action='store', default=",",
+                           help='CSV char delimiter')
 
     # listfiles command
     subparser = get_cmd_parser('listfiles', subparsers,
@@ -125,7 +184,8 @@ def main():
 
     # listtables command
     subparser = get_cmd_parser('listtables', subparsers,
-                               help='List all tables stored in the datalogger.',
+                               help='List all tables stored in '
+                                    'the datalogger.',
                                func=listtables_cmd)
 
     # getdata command
@@ -135,9 +195,9 @@ def main():
                                     'By default the entire contents of the '
                                     'data archive will be downloaded.',
                                func=getdata_cmd)
-    subparser.add_argument('--table', action="store",
-                        help="The table name used for data collection")
-    subparser.add_argument('--output', action='store', default=stdout,
+    subparser.add_argument('table', action="store",
+                           help="The table name used for data collection")
+    subparser.add_argument('output', action='store',
                            type=argparse.FileType('w', 0),
                            help='Filename where output is written')
     subparser.add_argument('--start', help='The beginning datetime record '
@@ -147,14 +207,16 @@ def main():
     subparser.add_argument('--delim', action='store', default=",",
                            help='CSV char delimiter')
 
-#    # update command
-#    subparser = get_cmd_parser('update', subparsers,
-#                               help='Update CSV database records with getting '
-#                                    'automatically new archive records.',
-#                               func=update_cmd)
-#    subparser.add_argument('--delim', action="store", default=",",
-#                           help='CSV char delimiter')
-#    subparser.add_argument('db', action="store", help='The CSV file database')
+    # update command
+    subparser = get_cmd_parser('update', subparsers,
+                               help='Update CSV database records with getting '
+                               'automatically new archive records.',
+                               func=update_cmd)
+    subparser.add_argument('table', action="store",
+                           help="The table name used for data collection")
+    subparser.add_argument('--delim', action="store", default=",",
+                           help='CSV char delimiter')
+    subparser.add_argument('db', action="store", help='The CSV file database')
 
     # Parse argv arguments
     args = parser.parse_args()

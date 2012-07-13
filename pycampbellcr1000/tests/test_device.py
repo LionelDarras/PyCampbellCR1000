@@ -12,12 +12,8 @@
 from __future__ import unicode_literals
 from datetime import datetime, timedelta
 
-from pylink import link_from_url
-
-from . import assert_raises
 from ..logger import active_logger
-from ..device import CR1000, LOGGER
-from ..exceptions import NoDeviceException
+from ..device import CR1000
 
 
 active_logger()
@@ -30,6 +26,7 @@ def get_device(url):
     if device is None:
         device = CR1000.from_url(url, 1)
     return device
+
 
 def test_gettime(url):
     device = get_device(url)
@@ -107,6 +104,6 @@ def test_list_get_tables(url):
 
 def test_getprogstat(url):
     device = get_device(url)
-    osversion =  device.getprogstat()['OSVer'].decode('utf-8')
+    osversion = device.getprogstat()['OSVer'].decode('utf-8')
     osversion = osversion.split(".")[0]
     assert (osversion == "CR800" or osversion == "CR1000")
