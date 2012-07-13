@@ -9,6 +9,7 @@
 '''
 from __future__ import unicode_literals
 import math
+import time
 import calendar
 import csv
 import binascii
@@ -66,25 +67,20 @@ class cached_property(object):
         return value
 
 
-def nsec_to_time(nsec, utc=False):
+def nsec_to_time(nsec):
     '''Convert nsec to datetime.'''
     nsec_base = calendar.timegm((1990, 1, 1, 0, 0, 0))
     nsec_tick = 1E-9
     timestamp = nsec_base + nsec[0]
     timestamp += nsec[1] * nsec_tick
-    if utc:
-        return datetime.utcfromtimestamp(timestamp).replace(microsecond=0)
     return datetime.fromtimestamp(timestamp).replace(microsecond=0)
 
 
-def time_to_nsec(dtime, utc=False):
+def time_to_nsec(dtime):
     '''Convert timestamp to nsec value.'''
     nsec_base = calendar.timegm((1990, 1, 1, 0, 0, 0))
     nsec_tick = 1E-9
-    if utc:
-        timestamp = calendar.timegm(dtime.utctimetuple())
-    else:
-        timestamp = calendar.timegm(dtime.timetuple())
+    timestamp = time.mktime(dtime.timetuple())
     # separate fractional and integer part of timestamp
     (fp, ip) = math.modf(timestamp)
     # Calculate two integer values for NSec
