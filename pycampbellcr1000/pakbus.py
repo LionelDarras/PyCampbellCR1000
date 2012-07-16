@@ -83,7 +83,7 @@ class PakBus(object):
         self.dest_node = dest_node
         self.security_code = security_code
         self.transaction = Transaction()
-        LOGGER.info('Get the attention')
+        LOGGER.info('Get the node attention')
         self.link.write(b'\xBD\xBD\xBD\xBD\xBD\xBD')
 
     def write(self, packet):
@@ -319,7 +319,7 @@ class PakBus(object):
         return values, offset
 
     def decode_packet(self, data):
-        '''Decode packet.'''
+        '''Decode packet from raw data.'''
         LOGGER.info('Decode packet')
         # pkt: buffer containing unquoted packet, signature nullifier stripped
         # Initialize output variables
@@ -448,14 +448,14 @@ class PakBus(object):
                 msg['Settings'].append(item)
         return msg
 
-    def get_collectdata_cmd(self, tablenbr, tabledefsig, mode=0x04,
-                            p1=0, p2=0):
+    def get_collectdata_cmd(self, tablenbr, tabledefsig, mode=0x04, p1=0,
+                            p2=0):
         '''Create Collect Data Command packet
 
-        :param tablenbr: Table number
-        :param tabledefsig: Table defintion signature
-        :param mode: Collection mode code (p1 and Pp2 will be used
-                     depending on value)
+        :param tablenbr: Table number that contain data.
+        :param tabledefsig: Table defintion signature.
+        :param mode: Collection mode code (p1 and p2 will be used depending on
+                    value).
         :param p1: 1st parameter used to specify what to collect (optional)
         :param p2: 2nd parameter used to specify what to collect (optional)
         '''
@@ -517,7 +517,7 @@ class PakBus(object):
         return b''.join((hdr, msg)), transac_id
 
     def unpack_getprogstat_response(self, msg):
-        '''Unpack Get Programming Statistics Transaction Response packet.'''
+        '''Unpack Get Programming Statistics Response packet.'''
         # Get response code
         (msg['RespCode'], ), size = self.decode_bin(['Byte'], msg['raw'][2:])
 
@@ -577,7 +577,7 @@ class PakBus(object):
         return b''.join((hdr, msg)), transac_id
 
     def parse_filedir(self, data):
-        '''Parse File Directory Format.'''
+        '''Parse file directory format.'''
         offset = 0  # offset into raw buffer
         fd = {'files': []}  # initialize file directory structure
         [fd['DirVersion']], size = self.decode_bin(['Byte'], data[offset:])
@@ -704,7 +704,6 @@ class PakBus(object):
 
     def parse_collectdata(self, raw, tabledef, fieldnbr=[]):
         '''Parse data returned by Collectdata Response.'''
-
         offset = 0
         recdata = []  # output structure
 

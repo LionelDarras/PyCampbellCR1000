@@ -36,12 +36,9 @@ class CR1000(object):
     def __init__(self, link, dest_node=0x001, src_node=0x802,
                  security_code=0x0000):
         link.open()
-        # hack socket..
-        old_timeout = link.timeout
-        link.settimeout(1)
         LOGGER.info("init client")
         self.pakbus = PakBus(link, dest_node, src_node, security_code)
-
+        # try ping the datalogger
         for i in xrange(3):
             try:
                 if self.ping_node():
@@ -51,7 +48,6 @@ class CR1000(object):
                 self.pakbus.link.open()
         if not self.connected:
             raise NoDeviceException()
-        link.settimeout(old_timeout)
 
     @classmethod
     def from_url(cls, url, timeout=10, dest_node=0x001, src_node=0x802,
@@ -206,7 +202,8 @@ class CR1000(object):
 
     def get_data(self, tablename, start_date=None, stop_date=None):
         '''Get all data from `tablename` until `start_date` and `stop_date` as
-        ListDict.
+        ListDict. By default the entire contents of the data archive will be
+        downloaded.
 
         :param tablename: Table name that contains the data.
         :param start_date: The beginning datetime record.
