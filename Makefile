@@ -10,8 +10,9 @@ env:
 	rm ./env -fr
 	virtualenv ./env
 	/bin/bash -c 'source ./env/bin/activate ; pip install pep8 ; \
-    pip install pyflakes ; \
-    pip install tox ; pip install -e . '
+        pip install pyflakes ; \
+        pip install hg+https://bitbucket.org/birkenfeld/sphinx \
+        pip install tox ; pip install -e . '
 
 test:
 	tox
