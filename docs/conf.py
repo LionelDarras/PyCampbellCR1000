@@ -86,7 +86,7 @@ exclude_patterns = ['_build']
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-#pygments_style = 'sphinx'
+pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
@@ -96,15 +96,15 @@ exclude_patterns = ['_build']
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'flask'
+html_theme = 'agogo' #'flask'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #html_theme_options = {}
-html_theme_options = {
-     'index_logo': None,
-}
+#html_theme_options = {
+#     'index_logo': None,
+#}
 
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = ['_themes']
@@ -181,13 +181,13 @@ htmlhelp_basename = 'PyCampbellCR1000_doc'
 #latex_paper_size = 'letter'
 
 # The font size ('10pt', '11pt' or '12pt').
-#latex_font_size = '12pt'
+latex_font_size = '12pt'
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'PyCampbellCR1000.tex', u'PyCampbellCR1000 Documentation',
-   u'Salem Harrache', 'manual'),
+   u'Salem Harrache', 'howto'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -211,8 +211,16 @@ latex_documents = [
 #latex_appendices = []
 
 # If false, no module index is generated.
-#latex_domain_indices = True
+latex_domain_indices = False
 
+
+latex_elements = {
+'tableofcontents':"",
+'preamble': '''%
+  \pagestyle{plain}
+  \pagenumbering{arabic}
+''',
+}
 
 # -- Options for manual page output --------------------------------------------
 
