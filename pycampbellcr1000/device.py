@@ -60,6 +60,9 @@ class CR1000(object):
 
         :param url: A `PyLink` connection URL.
         :param timeout: Set a read timeout value.
+        :parm dest_node: Destination node ID (12-bit int) (default 0x001)
+        :parm src_node: Source node ID (12-bit int) (default 0x802)
+        :parm security_code: 16-bit security code (default 0x0000)
         '''
         link = link_from_url(url)
         link.settimeout(timeout)
@@ -87,6 +90,7 @@ class CR1000(object):
 
     def gettime(self):
         '''Returns the current datetime.'''
+        self.ping_node()
         LOGGER.info('Try gettime')
         # send clock command and wait for response packet
         hdr, msg, send_time = self.send_wait(self.pakbus.get_clock_cmd())
@@ -97,6 +101,7 @@ class CR1000(object):
         '''Set the given `dtime` and return the new current datetime'''
         LOGGER.info('Try settime')
         current_time = self.gettime()
+        self.ping_node()
         diff = dtime - current_time
         diff = diff.days * 86400 + diff.seconds
         # settime (OldTime in response)
@@ -104,12 +109,14 @@ class CR1000(object):
         # gettime (NewTime in response)
         hdr, msg, sdt2 = self.send_wait(self.pakbus.get_clock_cmd())
         # remove transmission time
+
         return nsec_to_time(msg['Time']) - (sdt1 + sdt2)
 
     @cached_property
     def settings(self):
-        '''Get device settings as dict'''
+        '''Get device settings as ListDict'''
         LOGGER.info('Try get settings')
+        self.ping_node()
         # send getsettings command and wait for response packet
         hdr, msg, send_time = self.send_wait(self.pakbus.get_getsettings_cmd())
         # remove transmission time
@@ -119,8 +126,9 @@ class CR1000(object):
         return settings
 
     def getfile(self, filename):
-        '''Get a complete file from CR1000 datalogger.'''
+        '''Get the file content from the datalogger.'''
         LOGGER.info('Try get file')
+        self.ping_node()
         data = []
         # Send file upload command packets until no more data is returned
         offset = 0x00000000
@@ -144,25 +152,25 @@ class CR1000(object):
                 offset += len(msg['FileData'])
             except KeyError:
                 break
-
         return b"".join(data)
 
     def list_files(self):
+        '''Lists the files available in the datalogger.'''
         data = self.getfile('.DIR')
         # List files in directory
         filedir = self.pakbus.parse_filedir(data)
         return [item['FileName'] for item in filedir['files']]
 
-    @cached_property
+    @property
     def table_def(self):
-        '''Get table definition.'''
+        '''Returns table definition.'''
         data = self.getfile('.TDF')
         # List tables
         tabledef = self.pakbus.parse_tabledef(data)
         return tabledef
 
     def list_tables(self):
-        '''Get list of tables.'''
+        '''Lists the tables available in the datalogger.'''
         return [item['Header']['TableName'] for item in self.table_def]
 
     def _collect_data(self, tablename, start_date, stop_date):
@@ -200,6 +208,7 @@ class CR1000(object):
         '''Get all data from `tablename` until `start_date` and `stop_date` as
         ListDict.
 
+        :param tablename: Table name that contains the data.
         :param start_date: The beginning datetime record.
         :param stop_date: The stopping datetime record.'''
         records = ListDict()
@@ -209,11 +218,15 @@ class CR1000(object):
 
     def get_data_generator(self, tablename, start_date=None, stop_date=None):
         '''Get all data from `tablename` until `start_date` and `stop_date` as
-        ListDict generator.
+        generator. The data can be fragmented into multiple packets, this
+        generator can return parsed data from each packet before receiving
+        the next one.
 
+        :param tablename: Table name that contains the data.
         :param start_date: The beginning datetime record.
         :param stop_date: The stopping datetime record.
         '''
+        self.ping_node()
         start_date = start_date or datetime(1990, 1, 1, 0, 0, 1)
         stop_date = stop_date or datetime.now()
         more = True
@@ -244,9 +257,11 @@ class CR1000(object):
             else:
                 more = False
 
+
     def getprogstat(self):
-        '''Get Programming Statistics.'''
+        '''Get programming statistics as dict.'''
         LOGGER.info('Try get programming statistics')
+        self.ping_node()
         hdr, msg, send_time = self.send_wait(self.pakbus.get_getprogstat_cmd())
         # remove transmission time
         data = Dict(dict(msg['Stats']))
@@ -255,7 +270,7 @@ class CR1000(object):
         return data
 
     def bye(self):
-        '''Send bye command.'''
+        '''Send a bye command.'''
         LOGGER.info("Send bye command")
         if self.connected:
             packet, transac_id = self.pakbus.get_bye_cmd()
