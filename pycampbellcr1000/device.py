@@ -27,10 +27,9 @@ class CR1000(object):
     data and parsing it into usable scalar values.
 
     :param link: A `PyLink` connection.
-    :parm dest_node: Destination node ID (12-bit int) (default 0x001)
-    :parm src_node: Source node ID (12-bit int) (default 0x802)
-
-    :parm security_code: 16-bit security code (default 0x0000)
+    :param dest_node: Destination node ID (12-bit int) (default 0x001)
+    :param src_node: Source node ID (12-bit int) (default 0x802)
+    :param security_code: 16-bit security code (default 0x0000)
     '''
     connected = False
 
@@ -57,9 +56,9 @@ class CR1000(object):
 
         :param url: A `PyLink` connection URL.
         :param timeout: Set a read timeout value.
-        :parm dest_node: Destination node ID (12-bit int) (default 0x001)
-        :parm src_node: Source node ID (12-bit int) (default 0x802)
-        :parm security_code: 16-bit security code (default 0x0000)
+        :param dest_node: Destination node ID (12-bit int) (default 0x001)
+        :param src_node: Source node ID (12-bit int) (default 0x802)
+        :param security_code: 16-bit security code (default 0x0000)
         '''
         link = link_from_url(url)
         link.settimeout(timeout)
@@ -254,7 +253,6 @@ class CR1000(object):
                 yield records.sorted_by('Datetime')
             else:
                 more = False
-
 
     def getprogstat(self):
         '''Get programming statistics as dict.'''

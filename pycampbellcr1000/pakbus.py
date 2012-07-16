@@ -36,9 +36,9 @@ class PakBus(object):
     '''Inteface for a pakbus client.
 
     :param link: A `PyLink` connection.
-    :parm dest_node: Destination node ID (12-bit int) (default 0x001)
-    :parm src_node: Source node ID (12-bit int) (default 0x802)
-    :parm security_code: 16-bit security code (default 0x0000)
+    :param dest_node: Destination node ID (12-bit int) (default 0x001)
+    :param src_node: Source node ID (12-bit int) (default 0x802)
+    :param security_code: 16-bit security code (default 0x0000)
     '''
 
     DATATYPE = {

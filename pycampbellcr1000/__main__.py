@@ -17,9 +17,9 @@ from datetime import datetime
 # Make sure the logger is configured early:
 from . import VERSION
 from .logger import active_logger
-from .compat import stdout, is_bytes
+from .compat import stdout
 from .device import CR1000
-from .utils import bytes_to_hex, csv_to_dict, ListDict
+from .utils import csv_to_dict, ListDict
 
 
 NOW = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -119,9 +119,17 @@ def update_cmd(args, device):
 
 def get_cmd_parser(cmd, subparsers, help, func):
     '''Make a subparser command.'''
-    parser = subparsers.add_parser(cmd, help=help, description=help)
+    formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    parser = subparsers.add_parser(cmd, help=help, description=help,
+                                   formatter_class=formatter_class)
     parser.add_argument('--timeout', default=10.0, type=float,
                         help="Connection link timeout")
+    parser.add_argument('--src', default=0x802, type=int,
+                        help='Source node ID')
+    parser.add_argument('--dest', default=0x001, type=int,
+                        help='Destination node ID')
+    parser.add_argument('--code', default=0x0000, type=int,
+                        help='Datalogger security code')
     parser.add_argument('--debug', action="store_true", default=False,
                         help='Display log')
     parser.add_argument('url', action="store",
@@ -135,10 +143,12 @@ def get_cmd_parser(cmd, subparsers, help, func):
 def main():
     '''Parse command-line arguments and execute CR1000 command.'''
 
-    parser = argparse.ArgumentParser(prog='PyCR1000',
+    formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    parser = argparse.ArgumentParser(prog='pycr1000',
                                      description='Communication tools for '
                                                  'Campbell CR1000-type '
-                                                 'Datalogger')
+                                                 'Datalogger',
+                                     formatter_class=formatter_class)
 
     parser.add_argument('--version', action='version',
                         version='PyCR1000 version %s' % VERSION,
@@ -148,13 +158,13 @@ def main():
     # gettime command
     subparser = get_cmd_parser('gettime', subparsers,
                                help='Print the current datetime of the'
-                                    ' station.',
+                                    ' datalogger.',
                                func=gettime_cmd)
 
     # settime command
     subparser = get_cmd_parser('settime', subparsers,
                                help='Set the given datetime argument on the'
-                                    ' station.',
+                                    ' datalogger.',
                                func=settime_cmd)
     subparser.add_argument('datetime', help='The chosen datetime value. '
                                             '(like : "%s")' % NOW)
@@ -222,11 +232,13 @@ def main():
 
     if args.debug:
         active_logger()
-        device = CR1000.from_url(args.url, args.timeout)
+        device = CR1000.from_url(args.url, args.timeout, args.dest, args.src,
+                                 args.code)
         args.func(args, device)
     else:
         try:
-            device = CR1000.from_url(args.url, args.timeout)
+            device = CR1000.from_url(args.url, args.timeout, args.dest,
+                                     args.src, args.code)
             args.func(args, device)
         except Exception as e:
             parser.error('%s' % e)
