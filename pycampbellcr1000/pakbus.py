@@ -215,7 +215,7 @@ class PakBus(object):
         return sig
 
     def compute_signature_nullifier(self, sig):
-        '''Calculate signature nullifier needed to create valid PakBus
+        '''Compute signature nullifier needed to create valid PakBus
         packets.'''
         nulb = nullif = b''
         for i in (1, 2):

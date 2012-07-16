@@ -29,6 +29,7 @@ class CR1000(object):
     :param link: A `PyLink` connection.
     :parm dest_node: Destination node ID (12-bit int) (default 0x001)
     :parm src_node: Source node ID (12-bit int) (default 0x802)
+
     :parm security_code: 16-bit security code (default 0x0000)
     '''
     connected = False
@@ -85,7 +86,7 @@ class CR1000(object):
         return self.connected
 
     def gettime(self):
-        '''Returns the current datetime.'''
+        '''Return the current datetime.'''
         self.ping_node()
         LOGGER.info('Try gettime')
         # send clock command and wait for response packet
@@ -94,7 +95,7 @@ class CR1000(object):
         return nsec_to_time(msg['Time']) - send_time
 
     def settime(self, dtime):
-        '''Set the given `dtime` and return the new current datetime'''
+        '''Sets the given `dtime` and returns the new current datetime'''
         LOGGER.info('Try settime')
         current_time = self.gettime()
         self.ping_node()
@@ -151,22 +152,22 @@ class CR1000(object):
         return b"".join(data)
 
     def list_files(self):
-        '''Lists the files available in the datalogger.'''
+        '''List the files available in the datalogger.'''
         data = self.getfile('.DIR')
         # List files in directory
         filedir = self.pakbus.parse_filedir(data)
         return [item['FileName'] for item in filedir['files']]
 
-    @property
+    @cached_property
     def table_def(self):
-        '''Returns table definition.'''
+        '''Return table definition.'''
         data = self.getfile('.TDF')
         # List tables
         tabledef = self.pakbus.parse_tabledef(data)
         return tabledef
 
     def list_tables(self):
-        '''Lists the tables available in the datalogger.'''
+        '''List the tables available in the datalogger.'''
         return [item['Header']['TableName'] for item in self.table_def]
 
     def _collect_data(self, tablename, start_date, stop_date):
@@ -202,7 +203,7 @@ class CR1000(object):
 
     def get_data(self, tablename, start_date=None, stop_date=None):
         '''Get all data from `tablename` until `start_date` and `stop_date` as
-        ListDict. By default the entire contents of the data archive will be
+        ListDict. By default the entire contents of the data will be
         downloaded.
 
         :param tablename: Table name that contains the data.

@@ -50,8 +50,7 @@ def getsettings_cmd(args, device):
     args.delim = args.delim.decode("string-escape")
     data = device.settings
     for item in data:
-        if is_bytes(item["SettingValue"]):
-            item["SettingValue"] = bytes_to_hex(item["SettingValue"])
+        item["SettingValue"] = repr(item["SettingValue"])
     args.output.write("%s" % data.to_csv(delimiter=args.delim))
 
 
@@ -193,7 +192,7 @@ def main():
                                help='Extract data from the datalogger '
                                     'between start datetime and stop datetime.'
                                     'By default the entire contents of the '
-                                    'data archive will be downloaded.',
+                                    'data will be downloaded.',
                                func=getdata_cmd)
     subparser.add_argument('table', action="store",
                            help="The table name used for data collection")
@@ -210,7 +209,7 @@ def main():
     # update command
     subparser = get_cmd_parser('update', subparsers,
                                help='Update CSV database records with getting '
-                               'automatically new archive records.',
+                               'automatically new records.',
                                func=update_cmd)
     subparser.add_argument('table', action="store",
                            help="The table name used for data collection")
