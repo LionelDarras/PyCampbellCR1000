@@ -60,6 +60,11 @@ def listfiles_cmd(args, device):
         print(filename.decode('utf-8'))
 
 
+def getfile_cmd(args, device):
+    '''Getfile command.'''
+    args.output.write("%s" % device.getfile(args.filename.decode('utf-8')))
+
+
 def listtables_cmd(args, device):
     '''Listtables command.'''
     for tablename in device.list_tables():
@@ -67,7 +72,7 @@ def listtables_cmd(args, device):
 
 
 def getdata_cmd(args, device, header=True, exclude_first=False):
-    '''Get data command.'''
+    '''Getdata command.'''
     args.delim = args.delim.decode("string-escape")
     if args.start is not None:
         args.start = datetime.strptime(args.start, "%Y-%m-%d %H:%M")
@@ -114,6 +119,7 @@ def update_cmd(args, device):
             args.output = file_db
             getdata_cmd(args, device, header=False, exclude_first=True)
         else:
+            args.output = file_db
             getdata_cmd(args, device, header=True)
 
 
@@ -154,7 +160,7 @@ def main():
                         version='PyCR1000 version %s' % VERSION,
                         help='Print PyCR1000’s version number and exit.')
 
-    subparsers = parser.add_subparsers(title='The PyVantagePro commands')
+    subparsers = parser.add_subparsers(title='The PyCR1000 commands')
     # gettime command
     subparser = get_cmd_parser('gettime', subparsers,
                                help='Print the current datetime of the'
@@ -171,14 +177,14 @@ def main():
 
     # getprogstat command
     subparser = get_cmd_parser('getprogstat', subparsers,
-                               help='Retrieves available programming '
+                               help='Retrieve available programming '
                                     'statistics information from the '
                                     'datalogger.',
                                func=getprogstat_cmd)
 
     # getsettings command
     subparser = get_cmd_parser('getsettings', subparsers,
-                               help='Retrieves the datalogger settings.',
+                               help='Retrieve the datalogger settings.',
                                func=getsettings_cmd)
     subparser.add_argument('--output', action='store', default=stdout,
                            type=argparse.FileType('w', 0),
@@ -191,6 +197,17 @@ def main():
                                help='List all files stored in the datalogger.',
                                func=listfiles_cmd)
 
+    # getfile command
+    subparser = get_cmd_parser('getfile', subparsers,
+                               help='Get the file content from the '
+                                    'datalogger.',
+                               func=getfile_cmd)
+    subparser.add_argument('filename', action="store",
+                           help="Filename to be downloaded.")
+    subparser.add_argument('output', action='store',
+                           type=argparse.FileType('w', 0),
+                           help='Filename where output is written')
+
     # listtables command
     subparser = get_cmd_parser('listtables', subparsers,
                                help='List all tables stored in '
@@ -201,8 +218,8 @@ def main():
     subparser = get_cmd_parser('getdata', subparsers,
                                help='Extract data from the datalogger '
                                     'between start datetime and stop datetime.'
-                                    'By default the entire contents of the '
-                                    'data will be downloaded.',
+                                    'By default the entire contents will be '
+                                    'downloaded.',
                                func=getdata_cmd)
     subparser.add_argument('table', action="store",
                            help="The table name used for data collection")
