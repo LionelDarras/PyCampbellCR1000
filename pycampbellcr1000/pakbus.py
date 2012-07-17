@@ -453,7 +453,7 @@ class PakBus(object):
         '''Create Collect Data Command packet
 
         :param tablenbr: Table number that contain data.
-        :param tabledefsig: Table defintion signature.
+        :param tabledefsig: Table definition signature.
         :param mode: Collection mode code (p1 and p2 will be used depending on
                     value).
         :param p1: 1st parameter used to specify what to collect (optional)
@@ -542,7 +542,7 @@ class PakBus(object):
         :param offset: Byte offset into the file or fragment
         :param swath: Number of bytes to read
         :param closeflag: Flag if file should be closed after this transaction
-        :param transac_id: Transaction number for continuig partial reads
+        :param transac_id: Transaction number for continuing partial reads
                            (required by OS>=17!)
         '''
         if  transac_id is None:
