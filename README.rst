@@ -1,4 +1,3 @@
-=============================================================
 PyCampbellCR1000 : Query the Campbell CR1000-type Dataloggers
 =============================================================
 
@@ -16,7 +15,7 @@ because we are assuming that the dataloggers are already configured.
 
 **Note:** PyCampbellCR1000 uses the `PyLink <http://pypi.python.org/pypi/PyLink>`_ lib, offers a universal communication interface with File-Like API.
 
---------
+
 Examples
 --------
 
@@ -59,8 +58,12 @@ Choose the time period to get your data from `start date` to `stop date`.
   >>> data[0]["Datetime"]
   datetime.datetime(2012, 7, 16, 11, 0)
 
+::
+
   >>> data[0]["CurSensor1_mVolt_Avg"]
   2508.0
+
+::
 
   >>> print(data.filter(('Datetime', 'CurSensor3_mAmp_Avg')).to_csv())
   Datetime,CurSensor3_mAmp_Avg
@@ -70,7 +73,6 @@ Choose the time period to get your data from `start date` to `stop date`.
   2012-07-16 11:59:00,17.25
 
 
---------
 Features
 --------
 
@@ -87,7 +89,6 @@ Features
 * Compatible with Python 2.6+ and 3.x
 
 
-------------
 Installation
 ------------
 
@@ -114,7 +115,7 @@ Or you can get the `source code from github
   $ cd PyCampbellCR1000
   $ python setup.py install
 
--------------
+
 Documentation
 -------------
 
