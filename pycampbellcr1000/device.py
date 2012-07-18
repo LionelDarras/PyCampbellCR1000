@@ -170,10 +170,10 @@ class CR1000(object):
         return [item['Header']['TableName'] for item in self.table_def]
 
     def _collect_data(self, tablename, start_date, stop_date):
-        '''Collect fragment data from `tablename` until `start_date` and
+        '''Collect fragment data from `tablename` from `start_date` to
         `stop_date` as ListDict.'''
         LOGGER.info('Send collect_data cmd')
-        mode = 0x07  # collect until p1 and p2 (nsec)
+        mode = 0x07  # collect from p1 to p2 (nsec)
         p1 = time_to_nsec(start_date)
         p2 = time_to_nsec(stop_date)
 
@@ -201,7 +201,7 @@ class CR1000(object):
         return data, more
 
     def get_data(self, tablename, start_date=None, stop_date=None):
-        '''Get all data from `tablename` until `start_date` and `stop_date` as
+        '''Get all data from `tablename` from `start_date` to `stop_date` as
         ListDict. By default the entire contents of the data will be
         downloaded.
 
@@ -214,7 +214,7 @@ class CR1000(object):
         return records
 
     def get_data_generator(self, tablename, start_date=None, stop_date=None):
-        '''Get all data from `tablename` until `start_date` and `stop_date` as
+        '''Get all data from `tablename` from `start_date` to `stop_date` as
         generator. The data can be fragmented into multiple packets, this
         generator can return parsed data from each packet before receiving
         the next one.
