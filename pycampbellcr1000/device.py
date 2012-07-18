@@ -24,7 +24,7 @@ from .utils import cached_property, ListDict, Dict, nsec_to_time, time_to_nsec
 
 class CR1000(object):
     '''Communicates with the datalogger by sending commands, reads the binary
-    data and parsing it into usable scalar values.
+    data and parses it into usable scalar values.
 
     :param link: A `PyLink` connection.
     :param dest_node: Destination node ID (12-bit int) (default 0x001)

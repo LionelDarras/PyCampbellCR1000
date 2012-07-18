@@ -235,7 +235,7 @@ def main():
 
     # update command
     subparser = get_cmd_parser('update', subparsers,
-                               help='Update CSV database records with getting '
+                               help='Update CSV database records by getting '
                                'automatically new records.',
                                func=update_cmd)
     subparser.add_argument('table', action="store",
