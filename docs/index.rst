@@ -97,7 +97,7 @@ Features
 Installation
 ------------
 
-You can install, upgrade, uninstall PyVantagePro with these commands
+You can install, upgrade, uninstall PyCampbellCR1000 with these commands
 
 .. code-block:: console
 
