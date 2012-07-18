@@ -16,6 +16,8 @@ or in command line mode to collect data as CSV.
 We don't update anything from PyCampbellCR1000 besides time,
 because we are assuming that the dataloggers are already configured.
 
+**Note:** PyVantagePro uses the `PyLink <http://pypi.python.org/pypi/PyLink>`_ lib, offers a universal communication interface with File-Like API.
+
 --------
 Examples
 --------
