@@ -1,5 +1,6 @@
 recursive-include docs *
 prune docs/_build
+prune docs/references
 include AUTHORS.rst
 include CHANGES.rst
 include conftest.py

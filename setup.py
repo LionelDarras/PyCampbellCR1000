@@ -3,7 +3,7 @@
     PyCampbellCR1000
     ----------------
 
-    Communication tools for Campbell CR1000-type Datalogger.
+    Communication tools for Campbell CR1000-type Dataloggers.
 
     :copyright: Copyright 2012 Salem Harrache and contributors, see AUTHORS.
     :license: BSD, see LICENSE for details.
@@ -40,7 +40,7 @@ setup(
     version='0.1',
     url='https://github.com/SalemHarrache/PyCampbellCR1000',
     license='GNU GPL v3',
-    description='Communication tools for Campbell CR1000-type Datalogger',
+    description='Communication tools for Campbell CR1000-type Dataloggers',
     long_description=README + '\n\n' + CHANGES,
     author='Salem Harrache',
     author_email='salem.harrache@gmail.com',

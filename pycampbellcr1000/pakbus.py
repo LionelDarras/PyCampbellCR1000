@@ -766,6 +766,7 @@ class PakBus(object):
                         # event-driven, time data precedes each record
                         values, size = self.decode_bin(['NSec'], raw[offset:])
                         record['TimeOfRec'] = values[0]
+                        record['TimeOfRec'] = nsec_to_time(record['TimeOfRec'])
                         offset += size
 
                     # Loop over all field indices

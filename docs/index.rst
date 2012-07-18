@@ -16,7 +16,7 @@ or in command line mode to collect data as CSV.
 We don't update anything from PyCampbellCR1000 besides time,
 because we are assuming that the dataloggers are already configured.
 
-**Note:** PyVantagePro uses the `PyLink <http://pypi.python.org/pypi/PyLink>`_ lib, offers a universal communication interface with File-Like API.
+**Note:** PyCampbellCR1000 uses the `PyLink <http://pypi.python.org/pypi/PyLink>`_ lib, offers a universal communication interface with File-Like API.
 
 --------
 Examples
@@ -61,8 +61,12 @@ Choose the time period to get your data from `start date` to `stop date`.
   >>> data[0]["Datetime"]
   datetime.datetime(2012, 7, 16, 11, 0)
 
+::
+
   >>> data[0]["CurSensor1_mVolt_Avg"]
   2508.0
+
+::
 
   >>> print(data.filter(('Datetime', 'CurSensor3_mAmp_Avg')).to_csv())
   Datetime,CurSensor3_mAmp_Avg
@@ -93,7 +97,7 @@ Features
 Installation
 ------------
 
-You can install, upgrade, uninstall PyVantagePro with these commands
+You can install, upgrade, uninstall PyCampbellCR1000 with these commands
 
 .. code-block:: console
 
