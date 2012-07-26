@@ -37,7 +37,7 @@ if sys.version_info < (2, 7) or (3,) <= sys.version_info < (3, 2):
 
 setup(
     name='PyCampbellCR1000',
-    version='0.1',
+    version='0.2',
     url='https://github.com/SalemHarrache/PyCampbellCR1000',
     license='GNU GPL v3',
     description='Communication tools for Campbell CR1000-type Dataloggers',
