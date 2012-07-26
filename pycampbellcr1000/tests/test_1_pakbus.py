@@ -173,7 +173,7 @@ def test_parse_collectdata():
     assert data[0]['BegRecNbr'] == 89052
     assert data[0]['RecFrag'][0]['Fields'][b'CurSensor1_mVolt_Avg'] == 2506.0
     assert data[0]['RecFrag'][0]['Fields'][b'Batt_Volt_Avg'] == 13.61
-    dtime = datetime.datetime(2012, 7, 26, 15, 40)
+    dtime = datetime.datetime(2012, 7, 26, 13, 40)
     assert data[0]['RecFrag'][0]['TimeOfRec'] == dtime
 
 
