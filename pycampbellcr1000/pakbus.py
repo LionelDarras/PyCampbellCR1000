@@ -19,7 +19,7 @@ import time
 from .compat import ord, chr, is_text, is_py3, bytes
 from .logger import LOGGER
 from .utils import Singleton
-from .exceptions import BadDataException, DeliveryFailureException
+from .exceptions import DeliveryFailureException
 from .utils import bytes_to_hex, nsec_to_time
 
 
@@ -347,7 +347,6 @@ class PakBus(object):
         msg['MsgType'], msg['TranNbr'] = values
         LOGGER.info('HiProtoCode, MsgType = <%x, %x>' %
                     (hdr['HiProtoCode'], msg['MsgType']))
-
 
         # PakBus Control Packets
         if hdr['HiProtoCode'] == 0 and msg['MsgType'] in (0x09, 0x89):
