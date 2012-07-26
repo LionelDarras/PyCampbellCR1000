@@ -43,6 +43,7 @@ class CR1000(object):
             try:
                 if self.ping_node():
                     self.connected = True
+                    break
             except NoDeviceException:
                 self.pakbus.link.close()
                 self.pakbus.link.open()
@@ -81,8 +82,7 @@ class CR1000(object):
         hdr, msg, send_time = self.send_wait(self.pakbus.get_hello_cmd())
         if not (hdr and msg):
             raise NoDeviceException()
-        self.connected = True
-        return self.connected
+        return True
 
     def gettime(self):
         '''Return the current datetime.'''
