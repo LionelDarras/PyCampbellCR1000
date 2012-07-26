@@ -15,5 +15,5 @@ from .pakbus import PakBus
 from .device import CR1000
 
 
-VERSION = '0.1dev'
+VERSION = '0.2dev'
 __version__ = VERSION
