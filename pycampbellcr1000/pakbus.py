@@ -328,29 +328,26 @@ class PakBus(object):
                'DstNodeId': None, 'HopCnt': None, 'SrcNodeId': None}
         msg = {'MsgType': None, 'TranNbr': None, 'raw': None}
 
-        try:
-            # decode PakBus header
-            rawhdr = struct.unpack('>4H', data[0:8])  # raw header bits
-            hdr['LinkState'] = rawhdr[0] >> 12
-            hdr['DstPhyAddr'] = rawhdr[0] & 0x0FFF
-            hdr['ExpMoreCode'] = (rawhdr[1] & 0xC000) >> 14
-            hdr['Priority'] = (rawhdr[1] & 0x3000) >> 12
-            hdr['SrcPhyAddr'] = rawhdr[1] & 0x0FFF
-            hdr['HiProtoCode'] = rawhdr[2] >> 12
-            hdr['DstNodeId'] = rawhdr[2] & 0x0FFF
-            hdr['HopCnt'] = rawhdr[3] >> 12
-            hdr['SrcNodeId'] = rawhdr[3] & 0x0FFF
+        # decode PakBus header
+        rawhdr = struct.unpack(str('>4H'), data[0:8])  # raw header bits
+        hdr['LinkState'] = rawhdr[0] >> 12
+        hdr['DstPhyAddr'] = rawhdr[0] & 0x0FFF
+        hdr['ExpMoreCode'] = (rawhdr[1] & 0xC000) >> 14
+        hdr['Priority'] = (rawhdr[1] & 0x3000) >> 12
+        hdr['SrcPhyAddr'] = rawhdr[1] & 0x0FFF
+        hdr['HiProtoCode'] = rawhdr[2] >> 12
+        hdr['DstNodeId'] = rawhdr[2] & 0x0FFF
+        hdr['HopCnt'] = rawhdr[3] >> 12
+        hdr['SrcNodeId'] = rawhdr[3] & 0x0FFF
 
-            # decode default message fields:
-            # raw message, message type and transaction number
-            msg['raw'] = data[8:]
-            values, size = self.decode_bin(('Byte', 'Byte'), msg['raw'][:2])
-            msg['MsgType'], msg['TranNbr'] = values
-            LOGGER.info('HiProtoCode, MsgType = <%x, %x>' %
-                        (hdr['HiProtoCode'], msg['MsgType']))
-        except Exception as e:
-            LOGGER.error('Decode packet error : %s' % e)
-            raise BadDataException()
+        # decode default message fields:
+        # raw message, message type and transaction number
+        msg['raw'] = data[8:]
+        values, size = self.decode_bin(('Byte', 'Byte'), msg['raw'][:2])
+        msg['MsgType'], msg['TranNbr'] = values
+        LOGGER.info('HiProtoCode, MsgType = <%x, %x>' %
+                    (hdr['HiProtoCode'], msg['MsgType']))
+
 
         # PakBus Control Packets
         if hdr['HiProtoCode'] == 0 and msg['MsgType'] in (0x09, 0x89):
@@ -430,7 +427,8 @@ class PakBus(object):
                 [SettingId], size = self.decode_bin(['UInt2'],
                                                     msg['raw'][offset:])
                 offset += size
-
+                if not msg['raw'][offset:]:
+                    break
                 # Get flags and length
                 [bit16], size = self.decode_bin(['UInt2'], msg['raw'][offset:])
                 LargeValue = (bit16 & 0x8000) >> 15
