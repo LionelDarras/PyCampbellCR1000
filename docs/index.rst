@@ -4,6 +4,19 @@ PyCampbellCR1000 : Query the Campbell CR1000-type Dataloggers
 
 .. module:: pycampbellcr1000
 
+About
+-----
+
+This project was conducted by the laboratory `ISTerre Grenoble`_ (FR) as part
+of the development of an observation network `OMIV﻿`_ (Observatoire
+Multi-disciplinaires des Instabilités de Versants)
+
+.. _`ISTerre Grenoble`: http://isterre.fr/?lang=en
+.. _`OMIV﻿`: http://omiv.osug.fr/
+
+Descritpion
+-----------
+
 PyCampbellCR1000 is a python project which aims to allow the communication with
 Campbell CR1000 Type Datalogger
 

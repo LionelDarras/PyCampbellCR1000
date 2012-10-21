@@ -9,7 +9,6 @@
 # serve to show the default.
 
 from __future__ import with_statement
-import sys
 import os
 import re
 
@@ -185,7 +184,7 @@ latex_font_size = '12pt'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'PyCampbellCR1000.tex', u'PyCampbellCR1000 Documentation',
-   u'Salem Harrache', 'howto'),
+   u'Salem Harrache \& Lionel Darras', 'howto'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -213,7 +212,7 @@ latex_domain_indices = False
 
 
 latex_elements = {
-'tableofcontents':"",
+'tableofcontents': "",
 'preamble': '''%
   \pagestyle{plain}
   \pagenumbering{arabic}
@@ -226,7 +225,7 @@ latex_elements = {
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'pycampbellcr1000', u'PyCampbellCR1000 Documentation',
-     [u'Salem Harrache'], 1)
+     [u'Salem Harrache', "Lionel Darras"], 1)
 ]
 
 intersphinx_mapping = {'http://docs.python.org/': None}
