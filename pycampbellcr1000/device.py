@@ -169,13 +169,18 @@ class CR1000(object):
         '''List the tables available in the datalogger.'''
         return [item['Header']['TableName'] for item in self.table_def]
 
-    def _collect_data(self, tablename, start_date, stop_date):
+    def _collect_data(self, tablename, start_date=None, stop_date=None):
         '''Collect fragment data from `tablename` from `start_date` to
         `stop_date` as ListDict.'''
         LOGGER.info('Send collect_data cmd')
-        mode = 0x07  # collect from p1 to p2 (nsec)
-        p1 = time_to_nsec(start_date)
-        p2 = time_to_nsec(stop_date)
+        if start_date is not None:
+            mode = 0x07  # collect from p1 to p2 (nsec)
+            p1 = time_to_nsec(start_date)
+            p2 = time_to_nsec(stop_date or datetime.now())
+        else:
+            mode = 0x03  # collect all
+            p1 = 0
+            p2 = 0
 
         tabledef = self.table_def
         # Get table number
@@ -253,6 +258,20 @@ class CR1000(object):
                 yield records.sorted_by('Datetime')
             else:
                 more = False
+
+    def get_raw_packets(self, tablename):
+        '''Get all raw packets from table `tablename`.
+
+        :param tablename: Table name that contains the data.
+        '''
+        self.ping_node()
+        more = True
+        records = ListDict()
+        while more:
+            packets, more = self._collect_data(tablename)
+            for rec in packets:
+                records.append(rec)
+        return records
 
     def getprogstat(self):
         '''Get programming statistics as dict.'''
