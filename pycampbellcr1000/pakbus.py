@@ -362,6 +362,8 @@ class PakBus(object):
             msg = self.unpack_clock_response(msg)
         elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x98:
             msg = self.unpack_getprogstat_response(msg)
+        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x9c:
+            msg = self.unpack_filedownload_response(msg)
         elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x9d:
             msg = self.unpack_fileupload_response(msg)
         elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0xa1:
@@ -531,6 +533,23 @@ class PakBus(object):
             msg['Stats'] = item
         return msg
 
+    def get_filedownload_cmd(self, filename, data, offset=0x00000000,
+                             closeflag=0x00, transac_id=None):
+        '''Create Filedownload Command packet.
+
+        :param filename: File name as string
+        :param offset: Byte offset into the file or fragment
+        :param closeflag: Flag if file should be closed after this transaction
+        :param transac_id: Transaction number for continuing partial reads
+        '''
+        raise NotImplementedError('Filedownload transaction is not implemented'
+                                  ' yet')
+
+    def unpack_filedownload_response(self, msg):
+        '''Unpack Filedownload Response packet.'''
+        raise NotImplementedError('Filedownload transaction is not implemented'
+                                  ' yet')
+
     def get_fileupload_cmd(self, filename, offset=0x00000000, swath=0x0200,
                            closeflag=0x01, transac_id=None):
         '''Create Fileupload Command packet.
@@ -542,7 +561,7 @@ class PakBus(object):
         :param transac_id: Transaction number for continuing partial reads
                            (required by OS>=17!)
         '''
-        if  transac_id is None:
+        if transac_id is None:
             transac_id = self.transaction.next_id()
         # BMP5 Application Packet
         hdr = self.pack_header(0x1)

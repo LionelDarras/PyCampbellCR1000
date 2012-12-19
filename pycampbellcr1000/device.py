@@ -150,6 +150,12 @@ class CR1000(object):
                 break
         return b"".join(data)
 
+    def sendfile(self, data, filename):
+        '''Upload a file to the datalogger.'''
+        LOGGER.info('Try send file')
+        raise NotImplementedError('Filedownload transaction is not implemented'
+                                  ' yet')
+
     def list_files(self):
         '''List the files available in the datalogger.'''
         data = self.getfile('.DIR')
