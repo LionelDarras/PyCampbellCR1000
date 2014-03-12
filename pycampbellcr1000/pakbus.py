@@ -19,7 +19,7 @@ import time
 from .compat import ord, chr, is_text, is_py3, bytes
 from .logger import LOGGER
 from .utils import Singleton
-from .exceptions import BadDataException, DeliveryFailureException
+from .exceptions import DeliveryFailureException
 from .utils import bytes_to_hex, nsec_to_time
 
 
@@ -297,7 +297,7 @@ class PakBus(object):
                 # return fixed-length string
             elif type_ == 'FP2':
                 # special handling: FP2 floating point number
-                fp2 = struct.unpack(fmt, buff[offset:offset + size])
+                fp2 = struct.unpack(str(fmt), buff[offset:offset + size])
                 mant = fp2[0] & 0x1FFF    # mantissa is in bits 1-13
                 exp = fp2[0] >> 13 & 0x3  # exponent is in bits 14-15
                 sign = fp2[0] >> 15       # sign is in bit 16
@@ -328,29 +328,25 @@ class PakBus(object):
                'DstNodeId': None, 'HopCnt': None, 'SrcNodeId': None}
         msg = {'MsgType': None, 'TranNbr': None, 'raw': None}
 
-        try:
-            # decode PakBus header
-            rawhdr = struct.unpack('>4H', data[0:8])  # raw header bits
-            hdr['LinkState'] = rawhdr[0] >> 12
-            hdr['DstPhyAddr'] = rawhdr[0] & 0x0FFF
-            hdr['ExpMoreCode'] = (rawhdr[1] & 0xC000) >> 14
-            hdr['Priority'] = (rawhdr[1] & 0x3000) >> 12
-            hdr['SrcPhyAddr'] = rawhdr[1] & 0x0FFF
-            hdr['HiProtoCode'] = rawhdr[2] >> 12
-            hdr['DstNodeId'] = rawhdr[2] & 0x0FFF
-            hdr['HopCnt'] = rawhdr[3] >> 12
-            hdr['SrcNodeId'] = rawhdr[3] & 0x0FFF
+        # decode PakBus header
+        rawhdr = struct.unpack(str('>4H'), data[0:8])  # raw header bits
+        hdr['LinkState'] = rawhdr[0] >> 12
+        hdr['DstPhyAddr'] = rawhdr[0] & 0x0FFF
+        hdr['ExpMoreCode'] = (rawhdr[1] & 0xC000) >> 14
+        hdr['Priority'] = (rawhdr[1] & 0x3000) >> 12
+        hdr['SrcPhyAddr'] = rawhdr[1] & 0x0FFF
+        hdr['HiProtoCode'] = rawhdr[2] >> 12
+        hdr['DstNodeId'] = rawhdr[2] & 0x0FFF
+        hdr['HopCnt'] = rawhdr[3] >> 12
+        hdr['SrcNodeId'] = rawhdr[3] & 0x0FFF
 
-            # decode default message fields:
-            # raw message, message type and transaction number
-            msg['raw'] = data[8:]
-            values, size = self.decode_bin(('Byte', 'Byte'), msg['raw'][:2])
-            msg['MsgType'], msg['TranNbr'] = values
-            LOGGER.info('HiProtoCode, MsgType = <%x, %x>' %
-                        (hdr['HiProtoCode'], msg['MsgType']))
-        except Exception as e:
-            LOGGER.error('Decode packet error : %s' % e)
-            raise BadDataException()
+        # decode default message fields:
+        # raw message, message type and transaction number
+        msg['raw'] = data[8:]
+        values, size = self.decode_bin(('Byte', 'Byte'), msg['raw'][:2])
+        msg['MsgType'], msg['TranNbr'] = values
+        LOGGER.info('HiProtoCode, MsgType = <%x, %x>' %
+                    (hdr['HiProtoCode'], msg['MsgType']))
 
         # PakBus Control Packets
         if hdr['HiProtoCode'] == 0 and msg['MsgType'] in (0x09, 0x89):
@@ -366,6 +362,8 @@ class PakBus(object):
             msg = self.unpack_clock_response(msg)
         elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x98:
             msg = self.unpack_getprogstat_response(msg)
+        elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x9c:
+            msg = self.unpack_filedownload_response(msg)
         elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0x9d:
             msg = self.unpack_fileupload_response(msg)
         elif hdr['HiProtoCode'] == 1 and msg['MsgType'] == 0xa1:
@@ -430,7 +428,8 @@ class PakBus(object):
                 [SettingId], size = self.decode_bin(['UInt2'],
                                                     msg['raw'][offset:])
                 offset += size
-
+                if not msg['raw'][offset:]:
+                    break
                 # Get flags and length
                 [bit16], size = self.decode_bin(['UInt2'], msg['raw'][offset:])
                 LargeValue = (bit16 & 0x8000) >> 15
@@ -534,6 +533,23 @@ class PakBus(object):
             msg['Stats'] = item
         return msg
 
+    def get_filedownload_cmd(self, filename, data, offset=0x00000000,
+                             closeflag=0x00, transac_id=None):
+        '''Create Filedownload Command packet.
+
+        :param filename: File name as string
+        :param offset: Byte offset into the file or fragment
+        :param closeflag: Flag if file should be closed after this transaction
+        :param transac_id: Transaction number for continuing partial reads
+        '''
+        raise NotImplementedError('Filedownload transaction is not implemented'
+                                  ' yet')
+
+    def unpack_filedownload_response(self, msg):
+        '''Unpack Filedownload Response packet.'''
+        raise NotImplementedError('Filedownload transaction is not implemented'
+                                  ' yet')
+
     def get_fileupload_cmd(self, filename, offset=0x00000000, swath=0x0200,
                            closeflag=0x01, transac_id=None):
         '''Create Fileupload Command packet.
@@ -545,7 +561,7 @@ class PakBus(object):
         :param transac_id: Transaction number for continuing partial reads
                            (required by OS>=17!)
         '''
-        if  transac_id is None:
+        if transac_id is None:
             transac_id = self.transaction.next_id()
         # BMP5 Application Packet
         hdr = self.pack_header(0x1)

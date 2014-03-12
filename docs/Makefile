@@ -12,13 +12,17 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help clean html latex pdf site
+.PHONY: help clean html latex pdf all
+
+all: html pdf
+	mv ./_build/latex/PyCampbellCR1000.pdf ./_build/html/PyCampbellCR1000.pdf
+
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  html    to make standalone HTML files"
-	@echo "  latex   to make LaTeX files, you can set PAPER=a4 or PAPER=letter"
-	@echo "  pdf     to make LaTeX files and run them through pdflatex"
+	@echo "  html       to make standalone HTML files"
+	@echo "  latex      to make LaTeX files, you can set PAPER=a4 or PAPER=letter"
+	@echo "  latexpdf   to make LaTeX files and run them through pdflatex"
 
 clean:
 	-rm -rf $(BUILDDIR)/*
@@ -38,4 +42,3 @@ latex:
 pdf: latex
 	make -C _build/latex all-pdf
 	@echo "pdflatex finished; the PDF files are in _build/latex."
-
