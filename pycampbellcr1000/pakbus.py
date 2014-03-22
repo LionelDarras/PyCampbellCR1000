@@ -349,7 +349,7 @@ class PakBus(object):
                     (hdr['HiProtoCode'], msg['MsgType']))
 
         # PakBus Control Packets
-        if hdr['HiProtoCode'] == 0 and msg['MsgType'] in (0x09, 0x89):
+        if hdr['HiProtoCode'] == 0 and msg['MsgType'] in (0x09, 0x89, 0xe):
             msg = self.unpack_hello_response(msg)
         elif hdr['HiProtoCode'] == 0 and msg['MsgType'] == 0x81:
             msg = self.unpack_failure_response(msg)
