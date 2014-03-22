@@ -138,7 +138,7 @@ class PakBus(object):
         else:
             return data
 
-    def wait_packet(self, transac_id):
+    def wait_packet(self, transac_id=None):
         '''Wait for an incoming packet.
 
         :param transac_id: Expected transaction number.
