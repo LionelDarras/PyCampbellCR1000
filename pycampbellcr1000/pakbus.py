@@ -42,33 +42,33 @@ class PakBus(object):
     '''
 
     DATATYPE = {
-        'Byte':     {'code':  1, 'fmt': 'B',   'size': 1},
-        'UInt2':    {'code':  2, 'fmt': '>H',  'size': 2},
-        'UInt4':    {'code':  3, 'fmt': '>L',  'size': 4},
-        'Int1':     {'code':  4, 'fmt': 'b',   'size': 1},
-        'Int2':     {'code':  5, 'fmt': '>h',  'size': 2},
-        'Int4':     {'code':  6, 'fmt': '>l',  'size': 4},
-        'FP2':      {'code':  7, 'fmt': '>H',  'size': 2},
-        'FP3':      {'code': 15, 'fmt': '3c',  'size': 3},
-        'FP4':      {'code':  8, 'fmt': '4c',  'size': 4},
-        'IEEE4B':   {'code':  9, 'fmt': '>f',  'size': 4},
-        'IEEE8B':   {'code': 18, 'fmt': '>d',  'size': 8},
-        'Bool8':    {'code': 17, 'fmt': 'B',   'size': 1},
-        'Bool':     {'code': 10, 'fmt': 'B',   'size': 1},
-        'Bool2':    {'code': 27, 'fmt': '>H',  'size': 2},
-        'Bool4':    {'code': 28, 'fmt': '>L',  'size': 4},
-        'Sec':      {'code': 12, 'fmt': '>l',  'size': 4},
-        'USec':     {'code': 13, 'fmt': '6c',  'size': 6},
-        'NSec':     {'code': 14, 'fmt': '>2l', 'size': 8},
-        'ASCII':    {'code': 11, 'fmt': 's',   'size': None},
-        'ASCIIZ':   {'code': 16, 'fmt': 's',   'size': None},
-        'Short':    {'code': 19, 'fmt': '<h',  'size': 2},
-        'Long':     {'code': 20, 'fmt': '<l',  'size': 4},
-        'UShort':   {'code': 21, 'fmt': '<H',  'size': 2},
-        'ULong':    {'code': 22, 'fmt': '<L',  'size': 4},
-        'IEEE4L':   {'code': 24, 'fmt': '<f',  'size': 4},
-        'IEEE8L':   {'code': 25, 'fmt': '<d',  'size': 8},
-        'SecNano':  {'code': 23, 'fmt': '<2l', 'size': 8},
+        'Byte': {'code': 1, 'fmt': 'B', 'size': 1},
+        'UInt2': {'code': 2, 'fmt': '>H', 'size': 2},
+        'UInt4': {'code': 3, 'fmt': '>L', 'size': 4},
+        'Int1': {'code': 4, 'fmt': 'b', 'size': 1},
+        'Int2': {'code': 5, 'fmt': '>h', 'size': 2},
+        'Int4': {'code': 6, 'fmt': '>l', 'size': 4},
+        'FP2': {'code': 7, 'fmt': '>H', 'size': 2},
+        'FP3': {'code': 15, 'fmt': '3c', 'size': 3},
+        'FP4': {'code': 8, 'fmt': '4c', 'size': 4},
+        'IEEE4B': {'code': 9, 'fmt': '>f', 'size': 4},
+        'IEEE8B': {'code': 18, 'fmt': '>d', 'size': 8},
+        'Bool8': {'code': 17, 'fmt': 'B', 'size': 1},
+        'Bool': {'code': 10, 'fmt': 'B', 'size': 1},
+        'Bool2': {'code': 27, 'fmt': '>H', 'size': 2},
+        'Bool4': {'code': 28, 'fmt': '>L', 'size': 4},
+        'Sec': {'code': 12, 'fmt': '>l', 'size': 4},
+        'USec': {'code': 13, 'fmt': '6c', 'size': 6},
+        'NSec': {'code': 14, 'fmt': '>2l', 'size': 8},
+        'ASCII': {'code': 11, 'fmt': 's', 'size': None},
+        'ASCIIZ': {'code': 16, 'fmt': 's', 'size': None},
+        'Short': {'code': 19, 'fmt': '<h', 'size': 2},
+        'Long': {'code': 20, 'fmt': '<l', 'size': 4},
+        'UShort': {'code': 21, 'fmt': '<H', 'size': 2},
+        'ULong': {'code': 22, 'fmt': '<L', 'size': 4},
+        'IEEE4L': {'code': 24, 'fmt': '<f', 'size': 4},
+        'IEEE8L': {'code': 25, 'fmt': '<d', 'size': 8},
+        'SecNano': {'code': 23, 'fmt': '<2l', 'size': 8},
     }
 
     # link state
@@ -138,12 +138,11 @@ class PakBus(object):
         else:
             return data
 
-    def wait_packet(self, transac_id):
+    def wait_packet(self, transac_id=None):
         '''Wait for an incoming packet.
 
         :param transac_id: Expected transaction number.
         '''
-
         LOGGER.info('Wait packet with transaction %s' % transac_id)
         data = self.read()
         if data is None or data == b'':
@@ -157,13 +156,6 @@ class PakBus(object):
         if (hdr['DstNodeId'] != self.src_node) or \
            (hdr['SrcNodeId'] != self.dest_node):
             return {}, {}
-
-        # Respond to incoming hello command packets
-        if msg['MsgType'] == 0x09:
-            pkt = self.get_hello_response(hdr['SrcNodeId'], hdr['DstNodeId'],
-                                          msg['TranNbr'])
-            self.write(pkt)
-            return self.wait_packet(transac_id)
 
         # Handle 'please wait' packets
         if msg['TranNbr'] == transac_id and msg['MsgType'] == 0xa1:
@@ -349,7 +341,7 @@ class PakBus(object):
                     (hdr['HiProtoCode'], msg['MsgType']))
 
         # PakBus Control Packets
-        if hdr['HiProtoCode'] == 0 and msg['MsgType'] in (0x09, 0x89):
+        if hdr['HiProtoCode'] == 0 and msg['MsgType'] in (0x09, 0x89, 0xe):
             msg = self.unpack_hello_response(msg)
         elif hdr['HiProtoCode'] == 0 and msg['MsgType'] == 0x81:
             msg = self.unpack_failure_response(msg)
@@ -502,7 +494,7 @@ class PakBus(object):
 
     def unpack_clock_response(self, msg):
         '''Unpack Clock Response packet.'''
-        values, size = self.decode_bin(['Byte', 'NSec'],  msg['raw'][2:])
+        values, size = self.decode_bin(['Byte', 'NSec'], msg['raw'][2:])
         msg['RespCode'], msg['Time'] = values
         return msg
 

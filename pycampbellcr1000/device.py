@@ -38,6 +38,7 @@ class CR1000(object):
         link.open()
         LOGGER.info("init client")
         self.pakbus = PakBus(link, dest_node, src_node, security_code)
+        self.pakbus.wait_packet()
         # try ping the datalogger
         for i in xrange(3):
             try:
