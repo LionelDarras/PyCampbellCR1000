@@ -2,6 +2,14 @@
 Changelog
 ---------
 
+Version 0.3
+-----------
+
+Released on 2014-03-26.
+
+- Bug correction about communication with NL115, NL120 and NL200 modules using "CSI/O" serial port.
+- Support python 3.3 and 3.4 
+
 Version 0.2
 -----------
 

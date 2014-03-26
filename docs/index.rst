@@ -14,7 +14,7 @@ Multi-disciplinaires des Instabilités de Versants)
 .. _`ISTerre Grenoble`: http://isterre.fr/?lang=en
 .. _`OMIV﻿`: http://omiv.osug.fr/
 
-Descritpion
+Description
 -----------
 
 PyCampbellCR1000 is a python project which aims to allow the communication with

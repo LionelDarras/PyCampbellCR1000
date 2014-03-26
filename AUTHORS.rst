@@ -1,4 +1,4 @@
-PyCampbellCR1000 is written and maintained by Salem Harrache and
+PyCampbellCR1000 is written and maintained by Salem Harrache, Lionel Darras and
 various contributors:
 
 Development Lead
@@ -9,7 +9,7 @@ Development Lead
 Patches and Suggestions
 ```````````````````````
 
-- Lionel Darras
+- Lionel Darras <darras.lionel@gmail.com>
 
 Original authors
 ````````````````
