@@ -54,7 +54,7 @@ setup(
     author='Salem Harrache',
     author_email='salem.harrache@gmail.com',
     maintainer='Lionel Darras',
-    maintainer_email='Lionel.Darras@obs.ujf-grenoble.fr',
+    maintainer_email='darras.lionel@gmail.com',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
