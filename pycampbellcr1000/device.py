@@ -64,7 +64,7 @@ class CR1000(object):
         '''
         link = link_from_url(url)
         link.settimeout(timeout)
-        return cls(link, dest_node, src_node)
+        return cls(link, dest_node, src_node,security_code)     #EGC Add security code to the constructor call
 
     def send_wait(self, cmd):
         '''Send command and wait for response packet.'''
