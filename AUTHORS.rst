@@ -5,11 +5,12 @@ Development Lead
 ````````````````
 
 - Salem Harrache <salem@harrache.info>
+- Lionel Darras <lionel.darras@mom.fr>
 
 Patches and Suggestions
 ```````````````````````
 
-- Lionel Darras <darras.lionel@gmail.com>
+- Lionel Darras <lionel.darras@mom.fr>
 
 Original authors
 ````````````````

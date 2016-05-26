@@ -1,4 +1,4 @@
-=============================================================
+﻿=============================================================
 PyCampbellCR1000 : Query the Campbell CR1000-type Dataloggers
 =============================================================
 
@@ -125,11 +125,11 @@ Or if you don't have pip
   $ easy_install pycampbellcr1000
 
 Or you can get the `source code from github
-<https://github.com/SalemHarrache/PyCampbellCR1000>`_.
+<https://github.com/LionelDarras/PyCampbellCR1000>`_.
 
 .. code-block:: console
 
-  $ git clone https://github.com/SalemHarrache/PyCampbellCR1000.git
+  $ git clone https://github.com/LionelDarras/PyCampbellCR1000.git
   $ cd PyCampbellCR1000
   $ python setup.py install
 
@@ -139,7 +139,7 @@ About CR1000 Type Datalogger
 
 This can be read in the `BMP5 Transparent Commands Manual Rev 9/08`_ :
 
-.. _`BMP5 Transparent Commands Manual Rev 9/08`: https://github.com/SalemHarrache/PyCampbellCR1000/blob/master/docs/references/bmp5-transparent-commands.pdf?raw=true
+.. _`BMP5 Transparent Commands Manual Rev 9/08`: https://github.com/LionelDarras/PyCampbellCR1000/blob/master/docs/references/bmp5-transparent-commands.pdf?raw=true
 
 .. note::
     The CR1000 type datalogger (CR1000, CR3000, and CR800) is a rugged and versatile
@@ -653,9 +653,9 @@ Feedback & Contribute
 ---------------------
 
 Your feedback is more than welcome. Write email to the
-`PyCampbellCR1000 mailing list`_.
+`Author`_.
 
-.. _`PyCampbellCR1000 mailing list`: pycampbellcr1000@librelist.com
+.. _`Author`: lionel.darras@mom.fr
 
 There are several ways to contribute to the project:
 
@@ -665,8 +665,8 @@ There are several ways to contribute to the project:
 #. Write a test which shows that the bug was fixed or that the feature works as expected.
 #. Send a pull request and bug the maintainer until it gets merged and published. :) Make sure to add yourself to AUTHORS_.
 
-.. _`requests on github`: https://github.com/SalemHarrache/PyCampbellCR1000/issues
-.. _`the repository`: https://github.com/SalemHarrache/PyCampbellCR1000
-.. _AUTHORS: https://github.com/SalemHarrache/PyCampbellCR1000/blob/master/AUTHORS.rst
+.. _`requests on github`: https://github.com/LionelDarras/PyCampbellCR1000/issues
+.. _`the repository`: https://github.com/LionelDarras/PyCampbellCR1000
+.. _AUTHORS: https://github.com/LionelDarras/PyCampbellCR1000/blob/master/AUTHORS.rst
 
 .. include:: ../CHANGES.rst

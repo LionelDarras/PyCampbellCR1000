@@ -36,8 +36,10 @@ class PakBus(object):
     '''Inteface for a pakbus client.
 
     :param link: A `PyLink` connection.
-    :param dest_node: Destination node ID (12-bit int) (default 0x001)
-    :param src_node: Source node ID (12-bit int) (default 0x802)
+    :param dest_addr: Destination physical address (12-bit int) (default 0x001)
+    :param dest_node: Destination node ID (12-bit int) (default dest_addr)
+    :param src_addr: Source physical address (12-bit int) (default 0x802)
+    :param src_node: Source node ID (12-bit int) (default src_addr)
     :param security_code: 16-bit security code (default 0x0000)
     '''
 
@@ -76,11 +78,19 @@ class PakBus(object):
     READY = 0xA
     FINISHED = 0xB
 
-    def __init__(self, link, dest_node=0x001, src_node=0x802,
-                 security_code=0x0000):
+    def __init__(self, link, dest_addr=0x001, dest_node=None,
+                 src_addr=0x802, src_node=None, security_code=0x0000):
         self.link = link
-        self.src_node = src_node
-        self.dest_node = dest_node
+        self.src_addr = src_addr
+        if (src_node != None):
+            self.src_node = src_node
+        else:
+            self.src_node = src_addr
+        self.dest_addr = dest_addr
+        if (dest_node != None):
+            self.dest_node = dest_node
+        else:
+            self.dest_node = dest_addr
         self.security_code = security_code
         self.transaction = Transaction()
         LOGGER.info('Get the node attention')
@@ -187,9 +197,9 @@ class PakBus(object):
         link_state = link_state or self.READY
         # bitwise encoding of header fields
         hdr = struct.pack(str('>4H'),
-                          (link_state & 0xF) << 12 | (self.dest_node & 0xFFF),
+                          (link_state & 0xF) << 12 | (self.dest_addr & 0xFFF),
                           (exp_more & 0x3) << 14 | (priority & 0x3) << 12
-                                                 | (self.src_node & 0xFFF),
+                                                 | (self.src_addr & 0xFFF),
                           (hi_proto & 0xF) << 12 | (self.dest_node & 0xFFF),
                           (hops & 0xF) << 12 | (self.src_node & 0xFFF))
         return hdr
