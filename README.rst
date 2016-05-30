@@ -107,11 +107,11 @@ Or if you don't have pip
   $ easy_install pycampbellcr1000
 
 Or you can get the `source code from github
-<https://github.com/SalemHarrache/PyCampbellCR1000>`_.
+<https://github.com/LionelDarras/PyCampbellCR1000>`_.
 
 ::
 
-  $ git clone https://github.com/SalemHarrache/PyCampbellCR1000.git
+  $ git clone https://github.com/LionelDarras/PyCampbellCR1000.git
   $ cd PyCampbellCR1000
   $ python setup.py install
 

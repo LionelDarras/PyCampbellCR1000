@@ -144,7 +144,7 @@ def get_cmd_parser(cmd, subparsers, help, func):
     parser.add_argument('--debug', action="store_true", default=False,
                         help='Display log')
     parser.add_argument('url', action="store",
-                        help="Specifiy URL for connection link. "
+                        help="Specify URL for connection link. "
                         "E.g. tcp:iphost:port "
                         "or serial:/dev/ttyUSB0:19200:8N1")
     parser.set_defaults(func=func)
@@ -163,7 +163,7 @@ def main():
 
     parser.add_argument('--version', action='version',
                         version='PyCR1000 version %s' % VERSION,
-                        help='Print PyCR1000’s version number and exit.')
+                        help='Print PyCR1000 version number and exit.')
 
     subparsers = parser.add_subparsers(title='The PyCR1000 commands')
     # gettime command
