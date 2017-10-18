@@ -247,7 +247,7 @@ Allows us to update the datalogger datetime and returns the new value.
     positional arguments:
     url                Specifiy URL for connection link. E.g. tcp:iphost:port or
                        serial:/dev/ttyUSB0:19200:8N1
-    datetime           The chosen datetime value. (like : "2012-07-16 21:58")
+    datetime           The chosen datetime value. (like : "2012-07-16 21:58:23")
 
     optional arguments:
     -h, --help         Show this help message and exit
@@ -261,9 +261,9 @@ Allows us to update the datalogger datetime and returns the new value.
 
 .. code-block:: console
 
-    $ pycr1000 settime serial:/dev/ttyUSB0:19200:8N1 "2012-07-16 23:00"
-    Old Time : 2012-07-16 22:00
-    Current Time : 2012-07-16 23:00
+    $ pycr1000 settime serial:/dev/ttyUSB0:19200:8N1 "2012-07-16 23:00:00"
+    Old Time : 2012-07-16 22:00:12
+    Current Time : 2012-07-16 23:00:00
 
 
 Getprogstat
