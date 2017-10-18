@@ -104,7 +104,7 @@ class CR1000(object):
         current_time = self.gettime()
         self.ping_node()
         diff = dtime - current_time
-        diff = diff.days * 86400 + diff.seconds
+        diff = diff.total_seconds()
         # settime (OldTime in response)
         hdr, msg, sdt1 = self.send_wait(self.pakbus.get_clock_cmd((diff, 0)))
         # gettime (NewTime in response)
