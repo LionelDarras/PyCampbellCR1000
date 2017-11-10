@@ -33,9 +33,9 @@ def gettime_cmd(args, device):
 def settime_cmd(args, device):
     '''Settime command.'''
     old_time = device.gettime()
-    device.settime(datetime.strptime(args.datetime, "%Y-%m-%d %H:%M"))
-    print("Old Time : %s" % old_time.strftime("%Y-%m-%d %H:%M"))
-    print("Current Time : %s" % device.gettime().strftime("%Y-%m-%d %H:%M"))
+    device.settime(datetime.strptime(args.datetime, "%Y-%m-%d %H:%M:%S"))
+    print("Old Time : %s" % old_time.strftime("%Y-%m-%d %H:%M:%S"))
+    print("Current Time : %s" % device.gettime().strftime("%Y-%m-%d %H:%M:%S"))
 
 
 def getprogstat_cmd(args, device):
