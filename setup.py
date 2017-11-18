@@ -32,7 +32,7 @@ if sys.version_info < (2, 7):
     REQUIREMENTS.append('ordereddict')
 
 
-if sys.version_info < (2, 7) or (3,) <= sys.version_info < (3, 2):
+if sys.version_info < (2, 7) or (3,) <= sys.version_info < (3, 4):
     # In the stdlib from 2.7:
     REQUIREMENTS.append('argparse')
 

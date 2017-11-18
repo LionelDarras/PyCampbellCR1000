@@ -154,7 +154,7 @@ def get_cmd_parser(cmd, subparsers, help, func):
     parser.add_argument('--debug', action="store_true", default=False,
                         help='Display log')
     parser.add_argument('url', action="store",
-                        help="Specifiy URL for connection link. "
+                        help="Specify URL for connection link. "
                         "E.g. tcp:iphost:port or serial:/dev/ttyUSB0:19200:8N1"
                         " or serial:/COM1:19200:8N1")
     parser.set_defaults(func=func)
