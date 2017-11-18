@@ -3,6 +3,15 @@ Changelog
 ---------
 
 
+Version 0.4
+-----------
+
+Released on 2017-11-27
+
+- Bug correction about pakbus address and node.
+- Minor bug correction to can visualize help on python 3.x.
+- Allow seconds in settime.
+
 Version 0.3
 -----------
 

@@ -12,6 +12,12 @@ Patches and Suggestions
 
 - Lionel Darras <lionel.darras@mom.fr>
 
+Others contributors
+```````````````````
+
+- Sebastian Schubert for "Allow seconds in settime" change in the version 0.4.
+
+
 Original authors
 ````````````````
 
