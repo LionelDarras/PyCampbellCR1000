@@ -33,7 +33,7 @@ class Transaction(Singleton):
 
 
 class PakBus(object):
-    '''Inteface for a pakbus client.
+    '''Interface for a pakbus client.
 
     :param link: A `PyLink` connection.
     :param dest_addr: Destination physical address (12-bit int) (default 0x001)
@@ -95,6 +95,7 @@ class PakBus(object):
         self.transaction = Transaction()
         LOGGER.info('Get the node attention')
         self.link.write(b'\xBD\xBD\xBD\xBD\xBD\xBD')
+              
 
     def write(self, packet):
         '''Send packet over PakBus.'''
@@ -114,6 +115,8 @@ class PakBus(object):
         byte = None
         begin = time.time()
         while byte != b'\xBD':
+            if (byte != None):
+                LOGGER.info('Read byte: %s' % bytes_to_hex(byte))
             if time.time() - begin > self.link.timeout:
                 return None
             # Read until first \xBD frame character
@@ -163,8 +166,13 @@ class PakBus(object):
             return hdr, msg
 
         # ignore packets that are not for us
-        if (hdr['DstNodeId'] != self.src_node) or \
-           (hdr['SrcNodeId'] != self.dest_node):
+
+        LOGGER.info('src_node, SrcNodeId = <%x, %x>' %
+                    (self.src_node, hdr['SrcNodeId']))
+        LOGGER.info('dest_node, DstNodeId = <%x, %x>' %
+                    (self.dest_node, hdr['DstNodeId']))
+
+        if (hdr['DstNodeId'] != self.src_node):
             return {}, {}
 
         # Handle 'please wait' packets
