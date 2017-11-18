@@ -19,7 +19,7 @@ from .logger import LOGGER
 from .pakbus import PakBus
 from .exceptions import NoDeviceException
 from .compat import xrange, is_py3
-from .utils import cached_property, ListDict, Dict, nsec_to_time, time_to_nsec
+from .utils import cached_property, ListDict, Dict, nsec_to_time, time_to_nsec, bytes_to_hex
 
 
 class CR1000(object):
@@ -42,7 +42,8 @@ class CR1000(object):
         self.pakbus = PakBus(link, dest_addr, dest_node, src_addr, src_node, security_code)
         self.pakbus.wait_packet()
         # try ping the datalogger
-        for i in xrange(3):
+        for i in xrange(20):
+            LOGGER.info('%d'%(i))
             try:
                 if self.ping_node():
                     self.connected = True
@@ -104,7 +105,7 @@ class CR1000(object):
         current_time = self.gettime()
         self.ping_node()
         diff = dtime - current_time
-        diff = diff.days * 86400 + diff.seconds
+        diff = diff.total_seconds()
         # settime (OldTime in response)
         hdr, msg, sdt1 = self.send_wait(self.pakbus.get_clock_cmd((diff, 0)))
         # gettime (NewTime in response)

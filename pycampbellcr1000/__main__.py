@@ -23,6 +23,7 @@ from .utils import csv_to_dict, ListDict
 
 
 NOW = datetime.now().strftime("%Y-%m-%d %H:%M")
+NOWWITHSECONDS = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 def gettime_cmd(args, device):
@@ -33,9 +34,14 @@ def gettime_cmd(args, device):
 def settime_cmd(args, device):
     '''Settime command.'''
     old_time = device.gettime()
-    device.settime(datetime.strptime(args.datetime, "%Y-%m-%d %H:%M"))
-    print("Old Time : %s" % old_time.strftime("%Y-%m-%d %H:%M"))
-    print("Current Time : %s" % device.gettime().strftime("%Y-%m-%d %H:%M"))
+    try :
+        device.settime(datetime.strptime(args.datetime, "%Y-%m-%d %H:%M:%S"))
+        print("Old Time : %s" % old_time.strftime("%Y-%m-%d %H:%M:%S"))
+        print("Current Time : %s" % device.gettime().strftime("%Y-%m-%d %H:%M:%S"))
+    except :
+        device.settime(datetime.strptime(args.datetime, "%Y-%m-%d %H:%M"))
+        print("Old Time : %s" % old_time.strftime("%Y-%m-%d %H:%M"))
+        print("Current Time : %s" % device.gettime().strftime("%Y-%m-%d %H:%M"))        
 
 
 def getprogstat_cmd(args, device):
@@ -73,7 +79,11 @@ def listtables_cmd(args, device):
 
 def getdata_cmd(args, device, header=True, exclude_first=False):
     '''Getdata command.'''
-    args.delim = args.delim.decode("string-escape")
+    try:
+        args.delim = args.delim.decode("string-escape")
+    except:
+        args.delim = args.delim
+        
     if args.start is not None:
         args.start = datetime.strptime(args.start, "%Y-%m-%d %H:%M")
     if args.stop is not None:
@@ -94,7 +104,7 @@ def getdata_cmd(args, device, header=True, exclude_first=False):
 
     print("---------------------------")
     if total_records == 0:
-        print("No new records were found﻿")
+        print("No new records were found")
     elif total_records == 1:
         print("1 new record was found")
     else:
@@ -104,7 +114,7 @@ def getdata_cmd(args, device, header=True, exclude_first=False):
 def update_cmd(args, device):
     '''Update command.'''
     # create file if not exist
-    with file(args.db, 'a'):
+    with open(args.db, 'a'):
         os.utime(args.db, None)
     with open(args.db, 'r') as file_db:
         db = csv_to_dict(file_db, delimiter=args.delim)
@@ -145,8 +155,8 @@ def get_cmd_parser(cmd, subparsers, help, func):
                         help='Display log')
     parser.add_argument('url', action="store",
                         help="Specifiy URL for connection link. "
-                        "E.g. tcp:iphost:port "
-                        "or serial:/dev/ttyUSB0:19200:8N1")
+                        "E.g. tcp:iphost:port or serial:/dev/ttyUSB0:19200:8N1"
+                        " or serial:/COM1:19200:8N1")
     parser.set_defaults(func=func)
     return parser
 
@@ -163,7 +173,7 @@ def main():
 
     parser.add_argument('--version', action='version',
                         version='PyCR1000 version %s' % VERSION,
-                        help='Print PyCR1000’s version number and exit.')
+                        help='Print PyCR1000 version number and exit.')
 
     subparsers = parser.add_subparsers(title='The PyCR1000 commands')
     # gettime command
@@ -178,7 +188,7 @@ def main():
                                     ' datalogger.',
                                func=settime_cmd)
     subparser.add_argument('datetime', help='The chosen datetime value. '
-                                            '(like : "%s")' % NOW)
+                                            '(like : "%s" or "%s")' % (NOWWITHSECONDS, NOW))
 
     # getprogstat command
     subparser = get_cmd_parser('getprogstat', subparsers,
