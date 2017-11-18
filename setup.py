@@ -47,14 +47,14 @@ version = release.rstrip('dev')
 setup(
     name='PyCampbellCR1000',
     version=version,
-    url='https://github.com/SalemHarrache/PyCampbellCR1000',
+    url='https://github.com/LionelDarras/PyCampbellCR1000',
     license='GNU GPL v3',
     description='Communication tools for Campbell CR1000-type Dataloggers',
     long_description=README + '\n\n' + CHANGES,
     author='Salem Harrache',
     author_email='salem.harrache@gmail.com',
     maintainer='Lionel Darras',
-    maintainer_email='Lionel.Darras@obs.ujf-grenoble.fr',
+    maintainer_email='lionel.darras@mom.fr',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
@@ -65,6 +65,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.4',
         'Topic :: Internet',
         'Topic :: Utilities',
         'Topic :: Software Development :: Libraries :: Python Modules'
