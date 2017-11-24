@@ -36,10 +36,10 @@ class PakBus(object):
     '''Interface for a pakbus client.
 
     :param link: A `PyLink` connection.
-    :param dest_addr: Destination physical address (12-bit int) (default 0x001)
-    :param dest_node: Destination node ID (12-bit int) (default dest_addr)
-    :param src_addr: Source physical address (12-bit int) (default 0x802)
-    :param src_node: Source node ID (12-bit int) (default src_addr)
+    :param dest_addr: Destination physical address (12-bit int) (default dest)
+    :param dest: Destination node ID (12-bit int) (default 0x001)
+    :param src_addr: Source physical address (12-bit int) (default src)
+    :param src: Source node ID (12-bit int) (default 0x802)
     :param security_code: 16-bit security code (default 0x0000)
     '''
 
@@ -78,19 +78,19 @@ class PakBus(object):
     READY = 0xA
     FINISHED = 0xB
 
-    def __init__(self, link, dest_addr=0x001, dest_node=None,
-                 src_addr=0x802, src_node=None, security_code=0x0000):
+    def __init__(self, link, dest_addr=None, dest=0x001,
+                 src_addr=None, src=0x802, security_code=0x0000):
         self.link = link
-        self.src_addr = src_addr
-        if (src_node != None):
-            self.src_node = src_node
+        self.src = src
+        if (src_addr != None):
+            self.src_addr = src_addr
         else:
-            self.src_node = src_addr
-        self.dest_addr = dest_addr
-        if (dest_node != None):
-            self.dest_node = dest_node
+            self.src_addr = src
+        self.dest = dest
+        if (dest_addr != None):
+            self.dest_addr = dest_addr
         else:
-            self.dest_node = dest_addr
+            self.dest_addr = dest
         self.security_code = security_code
         self.transaction = Transaction()
         LOGGER.info('Get the node attention')
@@ -167,12 +167,12 @@ class PakBus(object):
 
         # ignore packets that are not for us
 
-        LOGGER.info('src_node, SrcNodeId = <%x, %x>' %
-                    (self.src_node, hdr['SrcNodeId']))
-        LOGGER.info('dest_node, DstNodeId = <%x, %x>' %
-                    (self.dest_node, hdr['DstNodeId']))
+        LOGGER.info('src, SrcNodeId = <%x, %x>' %
+                    (self.src, hdr['SrcNodeId']))
+        LOGGER.info('dest, DstNodeId = <%x, %x>' %
+                    (self.dest, hdr['DstNodeId']))
 
-        if (hdr['DstNodeId'] != self.src_node):
+        if (hdr['DstNodeId'] != self.src):
             return {}, {}
 
         # Handle 'please wait' packets
@@ -208,8 +208,8 @@ class PakBus(object):
                           (link_state & 0xF) << 12 | (self.dest_addr & 0xFFF),
                           (exp_more & 0x3) << 14 | (priority & 0x3) << 12
                                                  | (self.src_addr & 0xFFF),
-                          (hi_proto & 0xF) << 12 | (self.dest_node & 0xFFF),
-                          (hops & 0xF) << 12 | (self.src_node & 0xFFF))
+                          (hi_proto & 0xF) << 12 | (self.dest & 0xFFF),
+                          (hops & 0xF) << 12 | (self.src & 0xFFF))
         return hdr
 
     def compute_signature(self, buff, seed=0xAAAA):

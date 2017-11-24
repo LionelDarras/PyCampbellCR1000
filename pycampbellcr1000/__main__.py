@@ -141,13 +141,13 @@ def get_cmd_parser(cmd, subparsers, help, func):
                                    formatter_class=formatter_class)
     parser.add_argument('--timeout', default=10.0, type=float,
                         help="Connection link timeout")
-    parser.add_argument('--src_addr', default=0x802, type=int,
+    parser.add_argument('--src_addr', default=None, type=int,
                         help='Source physical address')
-    parser.add_argument('--src_node', default=None, type=int,
+    parser.add_argument('--src', default=0x802, type=int,
                         help='Source node ID')
-    parser.add_argument('--dest_addr', default=0x001, type=int,
+    parser.add_argument('--dest_addr', default=None, type=int,
                         help='Destination physical address')
-    parser.add_argument('--dest_node', default=None, type=int,
+    parser.add_argument('--dest', default=0x001, type=int,
                         help='Destination node ID')
     parser.add_argument('--code', default=0x0000, type=int,
                         help='Datalogger security code')
@@ -264,13 +264,13 @@ def main():
 
     if args.debug:
         active_logger()
-        device = CR1000.from_url(args.url, args.timeout, args.dest_addr, args.dest_node,
-                                 args.src_addr, args.src_node, args.code)
+        device = CR1000.from_url(args.url, args.timeout, args.dest_addr, args.dest,
+                                 args.src_addr, args.src, args.code)
         args.func(args, device)
     else:
         try:
-            device = CR1000.from_url(args.url, args.timeout, args.dest_addr, args.dest_node,
-                                     args.src_addr, args.src_node, args.code)
+            device = CR1000.from_url(args.url, args.timeout, args.dest_addr, args.dest,
+                                     args.src_addr, args.src, args.code)
             args.func(args, device)
         except Exception as e:
             parser.error('%s' % e)

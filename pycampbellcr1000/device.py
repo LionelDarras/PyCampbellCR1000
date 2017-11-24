@@ -27,19 +27,19 @@ class CR1000(object):
     data and parses it into usable scalar values.
 
     :param link: A `PyLink` connection.
-    :param dest_addr: Destination physical address (12-bit int) (default 0x001)
-    :param dest_node: Destination node ID (12-bit int) (default dest_addr)
-    :param src_addr: Source physical address (12-bit int) (default 0x802)
-    :param src_node: Source node ID (12-bit int) (default src_addr)
+    :param dest_addr: Destination physical address (12-bit int) (default dest)
+    :param dest: Destination node ID (12-bit int) (default 0x001)
+    :param src_addr: Source physical address (12-bit int) (default src)
+    :param src: Source node ID (12-bit int) (default 0x802)
     :param security_code: 16-bit security code (default 0x0000)
     '''
     connected = False
 
-    def __init__(self, link, dest_addr=0x001, dest_node=None, src_addr=0x802,
-                 src_node=None, security_code=0x0000):
+    def __init__(self, link, dest_addr=None, dest=0x001, src_addr=None,
+                 src=0x802, security_code=0x0000):
         link.open()
         LOGGER.info("init client")
-        self.pakbus = PakBus(link, dest_addr, dest_node, src_addr, src_node, security_code)
+        self.pakbus = PakBus(link, dest_addr, dest, src_addr, src, security_code)
         self.pakbus.wait_packet()
         # try ping the datalogger
         for i in xrange(20):
@@ -55,21 +55,21 @@ class CR1000(object):
             raise NoDeviceException()
 
     @classmethod
-    def from_url(cls, url, timeout=10, dest_addr=0x001, dest_node=None,
-                 src_addr=0x802, src_node=None, security_code=0x0000):
+    def from_url(cls, url, timeout=10, dest_addr=None, dest=0x001,
+                 src_addr=None, src=0x802, security_code=0x0000):
         ''' Get device from url.
 
         :param url: A `PyLink` connection URL.
         :param timeout: Set a read timeout value.
-        :param dest_addr: Destination physical address (12-bit int) (default 0x001)
-        :param dest_node: Destination node ID (12-bit int) (default dest_addr)
-        :param src_addr: Source physical address (12-bit int) (default 0x802)
-        :param src_node: Source node ID (12-bit int) (default src_addr)
+        :param dest_addr: Destination physical address (12-bit int) (default dest)
+        :param dest: Destination node ID (12-bit int) (default 0x001)
+        :param src_addr: Source physical address (12-bit int) (default src)
+        :param src: Source node ID (12-bit int) (default 0x802)
         :param security_code: 16-bit security code (default 0x0000)
         '''
         link = link_from_url(url)
         link.settimeout(timeout)
-        return cls(link, dest_addr, dest_node, src_addr, src_node, security_code)     #EGC Add security code to the constructor call
+        return cls(link, dest_addr, dest, src_addr, src, security_code)     #EGC Add security code to the constructor call
 
     def send_wait(self, cmd):
         '''Send command and wait for response packet.'''
