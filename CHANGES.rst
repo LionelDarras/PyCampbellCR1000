@@ -1,17 +1,18 @@
----------
 Changelog
 ---------
 
 
+-----------
 Version 0.4
 -----------
 
-Released on 2017-11-27
+Released on 2017-11-28
 
-- Bug correction about pakbus address and node.
+- Distinction between pakbus address and node in the pakbus protocol.
 - Minor bug correction to can visualize help on python 3.x.
 - Allow seconds in settime.
 
+-----------
 Version 0.3
 -----------
 
@@ -20,6 +21,7 @@ Released on 2014-03-26.
 - Bug correction about communication with NL115, NL120 and NL200 modules using "CSI/O" serial port.
 - Support python 3.3 and 3.4 
 
+-----------
 Version 0.2
 -----------
 
@@ -30,6 +32,7 @@ Released on 2012-07-26.
 - Decoded pakbus packet properly
 - Other minor bugs fixed
 
+-----------
 Version 0.1
 -----------
 

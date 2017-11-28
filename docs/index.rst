@@ -161,7 +161,6 @@ datalogger, feel free to test the tool and inform us about the compatibility
 with your machine.
 
 
-------------------
 Command-line usage
 ------------------
 
@@ -196,6 +195,7 @@ PyCampbellCR1000 has a command-line script that interacts with the datalogger.
                           new records.
 
 
+-------
 Gettime
 -------
 
@@ -212,17 +212,24 @@ the datalogger.
     Print the current datetime of the datalogger.
 
     positional arguments:
-      url                Specifiy URL for connection link. E.g. tcp:iphost:port or
+      url                Specify URL for connection link. E.g. tcp:iphost:port or
                          serial:/dev/ttyUSB0:19200:8N1 or serial:/COM1:19200:8N1
 
     optional arguments:
       -h, --help         Show this help message and exit
       --timeout TIMEOUT  Connection link timeout (default: 10.0)
-      --src SRC          Source node ID (default: 2050)
-      --dest DEST        Destination node ID (default: 1)
+      --src_addr SRC_ADDR	Source address ID (default: None)
+      --src SRC_NODE	        Source node ID (default: 2050)
+      --dest_addr DEST_ADDR     Destination address ID (default: None)
+      --dest DEST_NODE        	Destination node ID (default: 1)
       --code CODE        Datalogger security code (default: 0)
       --debug            Display log (default: False)
 
+
+**Note**
+
+address ID is the pakbus address of the first datalogger connected to the communication port.
+node ID is the pakbus address of the client datalogger in a network of several dataloggers; 
 
 **Example**
 
@@ -232,6 +239,7 @@ the datalogger.
     2012-07-16 21:57:30
 
 
+-------
 Settime
 -------
 
@@ -245,15 +253,17 @@ Allows us to update the datalogger datetime and returns the new value.
                           url datetime
 
     positional arguments:
-    url                Specifiy URL for connection link. E.g. tcp:iphost:port or
+    url                Specify URL for connection link. E.g. tcp:iphost:port or
                        serial:/dev/ttyUSB0:115200:8N1 or serial:/COM1:115200:8N1
     datetime           The chosen datetime value. (like : "2012-07-16 21:58:23" or "2012-07-16 21:58")
 
     optional arguments:
     -h, --help         Show this help message and exit
     --timeout TIMEOUT  Connection link timeout (default: 10.0)
-    --src SRC          Source node ID (default: 2050)
-    --dest DEST        Destination node ID (default: 1)
+    --src_addr SRC_ADDR       Source address ID (default: None)
+    --src SRC_NODE            Source node ID (default: 2050)
+    --dest_addr DEST_ADDR     Destination address ID (default: None)
+    --dest DEST_NODE          Destination node ID (default: 1)
     --code CODE        Datalogger security code (default: 0)
     --debug            Display log (default: False)
 
@@ -266,6 +276,7 @@ Allows us to update the datalogger datetime and returns the new value.
     Current Time : 2012-07-16 23:00:00
 
 
+-----------
 Getprogstat
 -----------
 
@@ -279,14 +290,16 @@ Retrieve available programming statistics from the datalogger.
                                 url
 
     positional arguments:
-      url                Specifiy URL for connection link. E.g. tcp:iphost:port or
+      url                Specify URL for connection link. E.g. tcp:iphost:port or
                          serial:/dev/ttyUSB0:19200:8N1
 
     optional arguments:
       -h, --help         Show this help message and exit
       --timeout TIMEOUT  Connection link timeout (default: 10.0)
-      --src SRC          Source node ID (default: 2050)
-      --dest DEST        Destination node ID (default: 1)
+      --src_addr SRC_ADDR       Source address ID (default: None)
+      --src SRC_NODE            Source node ID (default: 2050)
+      --dest_addr DEST_ADDR     Destination address ID (default: None)
+      --dest DEST_NODE          Destination node ID (default: 1)
       --code CODE        Datalogger security code (default: 0)
       --debug            Display log (default: False)
 
@@ -307,6 +320,7 @@ Retrieve available programming statistics from the datalogger.
     SerialNbr : E4668
 
 
+-----------
 Getsettings
 -----------
 
@@ -321,14 +335,16 @@ Retrieve the datalogger settings as CSV.
                                 url
 
     positional arguments:
-      url                Specifiy URL for connection link. E.g. tcp:iphost:port or
+      url                Specify URL for connection link. E.g. tcp:iphost:port or
                          serial:/dev/ttyUSB0:19200:8N1
 
     optional arguments:
       -h, --help         Show this help message and exit
       --timeout TIMEOUT  Connection link timeout (default: 10.0)
-      --src SRC          Source node ID (default: 2050)
-      --dest DEST        Destination node ID (default: 1)
+      --src_addr SRC_ADDR       Source address ID (default: None)
+      --src SRC_NODE            Source node ID (default: 2050)
+      --dest_addr DEST_ADDR     Destination address ID (default: None)
+      --dest DEST_NODE          Destination node ID (default: 1)
       --code CODE        Datalogger security code (default: 0)
       --debug            Display log (default: False)
       --output OUTPUT    Filename where output is written (default: <stdout>)
@@ -344,6 +360,7 @@ Retrieve the datalogger settings as CSV.
     1,'E\x00\x12<',1,0
     ...
 
+---------
 Listfiles
 ---------
 
@@ -359,14 +376,16 @@ Lists all files stored in the datalogger.
     Lists all files stored in the datalogger.
 
     positional arguments:
-      url                Specifiy URL for connection link. E.g. tcp:iphost:port or
+      url                Specify URL for connection link. E.g. tcp:iphost:port or
                          serial:/dev/ttyUSB0:19200:8N1
 
     optional arguments:
       -h, --help         Show this help message and exit
       --timeout TIMEOUT  Connection link timeout (default: 10.0)
-      --src SRC          Source node ID (default: 2050)
-      --dest DEST        Destination node ID (default: 1)
+      --src_addr SRC_ADDR       Source address ID (default: None)
+      --src SRC_NODE            Source node ID (default: 2050)
+      --dest_addr DEST_ADDR     Destination address ID (default: None)
+      --dest DEST_NODE          Destination node ID (default: 1)
       --code CODE        Datalogger security code (default: 0)
       --debug            Display log (default: False)
 
@@ -381,6 +400,7 @@ Lists all files stored in the datalogger.
     CPU:CR1000_LABO.CR1
 
 
+-------
 Getfile
 -------
 
@@ -394,7 +414,7 @@ Get the file content from the datalogger.
                             url filename output
 
     positional arguments:
-      url                Specifiy URL for connection link. E.g. tcp:iphost:port or
+      url                Specify URL for connection link. E.g. tcp:iphost:port or
                          serial:/dev/ttyUSB0:19200:8N1
       filename           Filename to be downloaded.
       output             Filename where output is written
@@ -402,8 +422,10 @@ Get the file content from the datalogger.
     optional arguments:
       -h, --help         Show this help message and exit
       --timeout TIMEOUT  Connection link timeout (default: 10.0)
-      --src SRC          Source node ID (default: 2050)
-      --dest DEST        Destination node ID (default: 1)
+      --src_addr SRC_ADDR       Source address ID (default: None)
+      --src SRC_NODE            Source node ID (default: 2050)
+      --dest_addr DEST_ADDR     Destination address ID (default: None)
+      --dest DEST_NODE          Destination node ID (default: 1)
       --code CODE        Datalogger security code (default: 0)
       --debug            Display log (default: False)
 
@@ -426,6 +448,7 @@ Get the file content from the datalogger.
     'Example:
 
 
+----------
 Listtables
 ----------
 
@@ -440,14 +463,16 @@ Lists all table names stored in the datalogger.
 
 
     positional arguments:
-      url                Specifiy URL for connection link. E.g. tcp:iphost:port or
+      url                Specify URL for connection link. E.g. tcp:iphost:port or
                          serial:/dev/ttyUSB0:19200:8N1
 
     optional arguments:
       -h, --help         Show this help message and exit
       --timeout TIMEOUT  Connection link timeout (default: 10.0)
-      --src SRC          Source node ID (default: 2050)
-      --dest DEST        Destination node ID (default: 1)
+      --src_addr SRC_ADDR       Source address ID (default: None)
+      --src SRC_NODE            Source node ID (default: 2050)
+      --dest_addr DEST_ADDR     Destination address ID (default: None)
+      --dest DEST_NODE          Destination node ID (default: 1)
       --code CODE        Datalogger security code (default: 0)
       --debug            Display log (default: False)
 
@@ -462,6 +487,7 @@ Lists all table names stored in the datalogger.
     Public
 
 
+-------
 Getdata
 -------
 
@@ -477,7 +503,7 @@ default the entire contents will be downloaded.
                             url table output
 
     positional arguments:
-      url                Specifiy URL for connection link. E.g. tcp:iphost:port or
+      url                Specify URL for connection link. E.g. tcp:iphost:port or
                          serial:/dev/ttyUSB0:19200:8N1
       table              The table name used for data collection
       output             Filename where output is written
@@ -485,8 +511,10 @@ default the entire contents will be downloaded.
     optional arguments:
       -h, --help         Show this help message and exit
       --timeout TIMEOUT  Connection link timeout (default: 10.0)
-      --src SRC          Source node ID (default: 2050)
-      --dest DEST        Destination node ID (default: 1)
+      --src_addr SRC_ADDR       Source address ID (default: None)
+      --src SRC_NODE            Source node ID (default: 2050)
+      --dest_addr DEST_ADDR     Destination address ID (default: None)
+      --dest DEST_NODE          Destination node ID (default: 1)
       --code CODE        Datalogger security code (default: 0)
       --debug            Display log (default: False)
       --start START      The beginning datetime record (like : "2012-07-17 11:25")
@@ -519,6 +547,7 @@ default the entire contents will be downloaded.
     2012-07-17 10:30:00,75722,2509.0,2508.0,16.64
 
 
+------
 Update
 ------
 
@@ -532,7 +561,7 @@ Update CSV database records by getting automatically new records.
                            url table db
 
     positional arguments:
-      url                Specifiy URL for connection link. E.g. tcp:iphost:port or
+      url                Specify URL for connection link. E.g. tcp:iphost:port or
                          serial:/dev/ttyUSB0:19200:8N1
       table              The table name used for data collection
       db                 The CSV file database
@@ -540,8 +569,10 @@ Update CSV database records by getting automatically new records.
     optional arguments:
       -h, --help         Show this help message and exit
       --timeout TIMEOUT  Connection link timeout (default: 10.0)
-      --src SRC          Source node ID (default: 2050)
-      --dest DEST        Destination node ID (default: 1)
+      --src_addr SRC_ADDR       Source address ID (default: None)
+      --src SRC_NODE            Source node ID (default: 2050)
+      --dest_addr DEST_ADDR     Destination address ID (default: None)
+      --dest DEST_NODE          Destination node ID (default: 1)
       --code CODE        Datalogger security code (default: 0)
       --debug            Display log (default: False)
       --delim DELIM      CSV char delimiter (default: ,)
@@ -591,6 +622,7 @@ If the file does not exist, it will be created automatically.
     No new records were found﻿
 
 
+----------
 Debug mode
 ----------
 
@@ -648,7 +680,15 @@ Low level API
 .. autoclass:: pycampbellcr1000.pakbus.PakBus
     :members: write, read, wait_packet, pack_header, compute_signature, compute_signature_nullifier, quote, unquote, encode_bin, decode_bin, decode_packet, get_hello_cmd, get_hello_response, unpack_hello_response, unpack_failure_response, get_getsettings_cmd, unpack_getsettings_response, get_collectdata_cmd, unpack_collectdata_response, get_clock_cmd, unpack_clock_response, get_getprogstat_cmd, unpack_getprogstat_response, get_fileupload_cmd, unpack_fileupload_response, unpack_pleasewait_response, get_bye_cmd, parse_filedir, parse_tabledef, parse_collectdata
 
----------------------
+
+Licence
+-------
+
+PyCampbellCR1000 has been developped on licence GNU GPL v3.
+
+https://www.gnu.org/licenses/gpl-3.0.en.html
+
+
 Feedback & Contribute
 ---------------------
 
@@ -668,5 +708,10 @@ There are several ways to contribute to the project:
 .. _`requests on github`: https://github.com/LionelDarras/PyCampbellCR1000/issues
 .. _`the repository`: https://github.com/LionelDarras/PyCampbellCR1000
 .. _AUTHORS: https://github.com/LionelDarras/PyCampbellCR1000/blob/master/AUTHORS.rst
+
+To cite this software :
+"Harrache, S., Darras, L. (2012). PyCampbellCR1000. Communication tools for Campbell CR1000-type Dataloggers (version x.y) [software].
+Available at https://pypi.python.org/pypi/PyCampbellCR1000."
+
 
 .. include:: ../CHANGES.rst
