@@ -818,7 +818,10 @@ class PakBus(object):
                             values, size = \
                                 self.decode_bin(dimension * [fieldtype],
                                                 raw[offset:])
-                            record['Fields'][fieldname] = values[0]
+                            if dimension>1:
+                                record['Fields'][fieldname] = values
+                            else:
+                                record['Fields'][fieldname] = values[0]
                         offset += size
                     frag['RecFrag'].append(record)
 
