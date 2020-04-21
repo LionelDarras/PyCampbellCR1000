@@ -308,10 +308,14 @@ class PakBus(object):
             elif type_ == 'FP2':
                 # special handling: FP2 floating point number
                 fp2 = struct.unpack(str(fmt), buff[offset:offset + size])
-                mant = fp2[0] & 0x1FFF    # mantissa is in bits 1-13
-                exp = fp2[0] >> 13 & 0x3  # exponent is in bits 14-15
-                sign = fp2[0] >> 15       # sign is in bit 16
-                value = ((-1) ** sign * float(mant) / 10 ** exp, )
+                if fp2[0]==40958:
+                    # 0b1001111111111110 is the encoding for NAN
+                    value = (None, )
+                else:
+                    mant = fp2[0] & 0x1FFF    # mantissa is in bits 1-13
+                    exp = fp2[0] >> 13 & 0x3  # exponent is in bits 14-15
+                    sign = fp2[0] >> 15       # sign is in bit 16
+                    value = ((-1) ** sign * float(mant) / 10 ** exp, )
             else:
                 # default decoding scheme
                 if buff[offset:offset + size]:
