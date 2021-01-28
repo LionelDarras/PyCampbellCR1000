@@ -544,21 +544,31 @@ class PakBus(object):
         return msg
 
     def get_filedownload_cmd(self, filename, data, offset=0x00000000,
-                             closeflag=0x00, transac_id=None):
+                             close_flag=0x00, transac_id=None):
         '''Create Filedownload Command packet.
 
         :param filename: File name as string
+        :param data: Bytes to send
         :param offset: Byte offset into the file or fragment
-        :param closeflag: Flag if file should be closed after this transaction
+        :param close_flag: Flag if file should be closed after this transaction
         :param transac_id: Transaction number for continuing partial reads
         '''
-        raise NotImplementedError('Filedownload transaction is not implemented'
-                                  ' yet')
+        if transac_id is None:
+            transac_id = self.transaction.next_id()
+        # BMP5 Application Packet
+        hdr = self.pack_header(0x1)
+        types = ['Byte', 'Byte',    'UInt2',           'ASCIIZ', 'Byte', 'Byte',
+                 'UInt4']
+        values = [0x1c, transac_id, self.security_code, filename, 0, close_flag,
+                  offset]
+        msg = self.encode_bin(types, values)
+        return b''.join((hdr, msg, data)), transac_id
 
     def unpack_filedownload_response(self, msg):
         '''Unpack Filedownload Response packet.'''
-        raise NotImplementedError('Filedownload transaction is not implemented'
-                                  ' yet')
+        values, size = self.decode_bin(['Byte', 'UInt4'], msg['raw'][2:7])
+        msg['RespCode'], msg['FileOffset'] = values
+        return msg
 
     def get_fileupload_cmd(self, filename, offset=0x00000000, swath=0x0200,
                            closeflag=0x01, transac_id=None):

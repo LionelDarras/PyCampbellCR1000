@@ -159,8 +159,34 @@ class CR1000(object):
     def sendfile(self, data, filename):
         '''Upload a file to the datalogger.'''
         LOGGER.info('Try send file')
-        raise NotImplementedError('Filedownload transaction is not implemented'
-                                  ' yet')
+        self.ping_node()
+        # Send file download command packets until all the data is sent
+        offset = 0x00000000
+        close_flag = 0x00
+        fragment_len = 500
+        transac_id = self.pakbus.transaction.next_id()
+        while True:
+            if len(data) - offset < fragment_len:
+                fragment_len = len(data) - offset
+                close_flag = 0x01
+            # send chunk from file starting at offset
+            cmd = self.pakbus.get_filedownload_cmd(filename,
+                                                   data[offset:offset+fragment_len],
+                                                   offset=offset,
+                                                   close_flag=close_flag,
+                                                   transac_id=transac_id)
+            hdr, msg, send_time = self.send_wait(cmd)
+            try:
+                if msg['RespCode'] == 1:
+                    raise ValueError("Permission denied")
+                if len(data) == fragment_len + offset:
+                    break
+                offset += 500
+                # only send filename once
+                filename = ""
+            except KeyError:
+                break
+        return True
 
     def list_files(self):
         '''List the files available in the datalogger.'''
