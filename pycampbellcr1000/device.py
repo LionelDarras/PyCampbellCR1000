@@ -188,6 +188,27 @@ class CR1000(object):
                 break
         return True
 
+    def run_program(self, filename):
+        '''run program file in the datalogger filesystem'''
+        LOGGER.info('Try run program')
+        self.ping_node()
+        # cmd 1 is: Compile and run the file specified by fileName1
+        #           and mark it as run on power up.
+        cmd = self.pakbus.get_filecontrol_cmd(filename, 1)
+        hdr, msg, send_time = self.send_wait(cmd)
+        # remove transmission time
+        try:
+            if msg['RespCode'] == 1:
+                raise ValueError("Permission denied")
+            elif msg['RespCode'] != 0:
+                return False
+            if msg['HoldOff'] > 0:
+                time.sleep(msg['HoldOff'])
+
+        except KeyError:
+            return False
+        return True
+
     def list_files(self):
         '''List the files available in the datalogger.'''
         data = self.getfile('.DIR')
