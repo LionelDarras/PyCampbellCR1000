@@ -159,8 +159,55 @@ class CR1000(object):
     def sendfile(self, data, filename):
         '''Upload a file to the datalogger.'''
         LOGGER.info('Try send file')
-        raise NotImplementedError('Filedownload transaction is not implemented'
-                                  ' yet')
+        self.ping_node()
+        # Send file download command packets until all the data is sent
+        offset = 0x00000000
+        close_flag = 0x00
+        fragment_len = 500
+        transac_id = self.pakbus.transaction.next_id()
+        while True:
+            if len(data) - offset < fragment_len:
+                fragment_len = len(data) - offset
+                close_flag = 0x01
+            # send chunk from file starting at offset
+            cmd = self.pakbus.get_filedownload_cmd(filename,
+                                                   data[offset:offset+fragment_len],
+                                                   offset=offset,
+                                                   close_flag=close_flag,
+                                                   transac_id=transac_id)
+            hdr, msg, send_time = self.send_wait(cmd)
+            try:
+                if msg['RespCode'] == 1:
+                    raise ValueError("Permission denied")
+                if len(data) == fragment_len + offset:
+                    break
+                offset += 500
+                # only send filename once
+                filename = ""
+            except KeyError:
+                break
+        return True
+
+    def run_program(self, filename):
+        '''run program file in the datalogger filesystem'''
+        LOGGER.info('Try run program')
+        self.ping_node()
+        # cmd 1 is: Compile and run the file specified by fileName1
+        #           and mark it as run on power up.
+        cmd = self.pakbus.get_filecontrol_cmd(filename, 1)
+        hdr, msg, send_time = self.send_wait(cmd)
+        # remove transmission time
+        try:
+            if msg['RespCode'] == 1:
+                raise ValueError("Permission denied")
+            elif msg['RespCode'] != 0:
+                return False
+            if msg['HoldOff'] > 0:
+                time.sleep(msg['HoldOff'])
+
+        except KeyError:
+            return False
+        return True
 
     def list_files(self):
         '''List the files available in the datalogger.'''
