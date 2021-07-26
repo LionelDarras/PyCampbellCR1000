@@ -41,7 +41,7 @@ class CR1000(object):
         LOGGER.info("init client")
         self.pakbus = PakBus(link, dest_addr, dest, src_addr, src, security_code)
         ret=self.pakbus.wait_packet()
-        if not r[0]:
+        if not ret[0]:
             # we haven't received any response
             raise NoDeviceException()
 
