@@ -40,10 +40,7 @@ class CR1000(object):
         link.open()
         LOGGER.info("init client")
         self.pakbus = PakBus(link, dest_addr, dest, src_addr, src, security_code)
-        ret=self.pakbus.wait_packet()
-        if not ret[0]:
-            # we haven't received any response
-            raise NoDeviceException()
+        self.pakbus.wait_packet()
 
         # try ping the datalogger
         for i in xrange(20):
