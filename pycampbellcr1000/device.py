@@ -41,6 +41,7 @@ class CR1000(object):
         LOGGER.info("init client")
         self.pakbus = PakBus(link, dest_addr, dest, src_addr, src, security_code)
         self.pakbus.wait_packet()
+
         # try ping the datalogger
         for i in xrange(20):
             LOGGER.info('%d'%(i))
@@ -262,7 +263,7 @@ class CR1000(object):
                         new_rec["Datetime"] = item['TimeOfRec']
                         new_rec["RecNbr"] = item['RecNbr']
                         for key in item['Fields']:
-                            new_rec["%s" % key] = item['Fields'][key]
+                            new_rec["%s" % key.decode('utf-8')] = item['Fields'][key]
                         records.append(new_rec)
 
             if records:
