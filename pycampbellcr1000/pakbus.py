@@ -93,8 +93,6 @@ class PakBus(object):
             self.dest_addr = dest
         self.security_code = security_code
         self.transaction = Transaction()
-        LOGGER.info('Get the node attention')
-        self.link.write(b'\xBD\xBD\xBD\xBD\xBD\xBD')
               
 
     def write(self, packet):
@@ -107,6 +105,8 @@ class PakBus(object):
         frame = self.quote(b''.join((packet, nullifier)))
         packet = b''.join((b'\xBD', frame, b'\xBD'))
         LOGGER.info('Write: %s' % bytes_to_hex(packet))
+        # debug output
+        self.log_packet(frame)
         self.link.write(packet)
 
     def read(self):
@@ -160,7 +160,8 @@ class PakBus(object):
         data = self.read()
         if data is None or data == b'':
             return {}, {}
-
+        
+        self.log_packet(data)
         hdr, msg = self.decode_packet(data)
         if hdr == {} or msg == {}:
             return hdr, msg
@@ -189,6 +190,7 @@ class PakBus(object):
         # This should be the packet we are waiting for
         if msg['TranNbr'] == transac_id:
             return hdr, msg
+        return hdr, msg
 
     def pack_header(self, hi_proto, exp_more=0x2, link_state=None,
                     hops=0x0):
@@ -328,6 +330,43 @@ class PakBus(object):
         # Return decoded values and current offset into buffer (size)
         return values, offset
 
+    def log_packet(self,data):
+        """
+        Log info in packet header"
+
+        data: buffer containing unquoted packet, signature nullifier stripped
+        """
+        # Initialize output variables
+        hdr = {'LinkState': None, 'DstPhyAddr': None, 'ExpMoreCode': None,
+               'Priority': None, 'SrcPhyAddr': None, 'HiProtoCode': None,
+               'DstNodeId': None, 'HopCnt': None, 'SrcNodeId': None}
+        msg = {'MsgType': None, 'TranNbr': None, 'raw': None}
+
+        # decode PakBus header
+        rawhdr = struct.unpack(str('>4H'), data[0:8])  # raw header bits
+        hdr['LinkState'] = rawhdr[0] >> 12
+        hdr['DstPhyAddr'] = rawhdr[0] & 0x0FFF
+        hdr['ExpMoreCode'] = (rawhdr[1] & 0xC000) >> 14
+        hdr['Priority'] = (rawhdr[1] & 0x3000) >> 12
+        hdr['SrcPhyAddr'] = rawhdr[1] & 0x0FFF
+        hdr['HiProtoCode'] = rawhdr[2] >> 12
+        hdr['DstNodeId'] = rawhdr[2] & 0x0FFF
+        hdr['HopCnt'] = rawhdr[3] >> 12
+        hdr['SrcNodeId'] = rawhdr[3] & 0x0FFF
+
+        # decode default message fields:
+        # raw message, message type and transaction number
+        msg['raw'] = data[8:]
+        values, size = self.decode_bin(('Byte', 'Byte'), msg['raw'][:2])
+        msg['MsgType'], msg['TranNbr'] = values
+        LOGGER.info(
+            f"PACKET[{len(data)}]: src={hdr['SrcPhyAddr']}.{hdr['SrcNodeId']}"
+            f" dst={hdr['DstPhyAddr']}.{hdr['DstNodeId']}"
+            f" cmd={hdr['HiProtoCode']}.{msg['MsgType']:x}"
+            f" linkstate={hdr['LinkState']}"
+            f" transaction={msg['TranNbr']}"
+        )
+        
     def decode_packet(self, data):
         '''Decode packet from raw data.'''
         LOGGER.info('Decode packet')
@@ -830,9 +869,6 @@ class PakBus(object):
         # Get flag if more records exist
         (more_rec,), size = self.decode_bin(['Bool'], raw[offset:])
         return recdata, more_rec
-
-    def __del__(self):
-        self.link.close()
 
     def __str__(self):
         name = self.__class__.__name__

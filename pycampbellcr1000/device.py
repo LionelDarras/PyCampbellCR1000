@@ -27,7 +27,7 @@ class CR1000(object):
     data and parses it into usable scalar values.
 
     :param link: A `PyLink` connection.
-    :param dest_addr: Destination physical address (12-bit int) (default dest)
+    :param dest_addr: Destination physical address (12-bit int) (default dest, but must set if there is a router)
     :param dest: Destination node ID (12-bit int) (default 0x001)
     :param src_addr: Source physical address (12-bit int) (default src)
     :param src: Source node ID (12-bit int) (default 0x802)
@@ -39,20 +39,14 @@ class CR1000(object):
                  src=0x802, security_code=0x0000):
         link.open()
         LOGGER.info("init client")
+        # Ping the router (which may be the same as dest)
+        router = dest_addr if dest_addr is not None else dest
+        router_pakbus = PakBus(link, dest=router, src=src)
+        link.write(b"\xBD\xBD\xBD\xBD\xBD\xBD")
+        hdr, msg = router_pakbus.wait_packet()
+        router_pakbus.write(router_pakbus.get_hello_cmd()[0])
+        hdr, msg = router_pakbus.wait_packet()
         self.pakbus = PakBus(link, dest_addr, dest, src_addr, src, security_code)
-        self.pakbus.wait_packet()
-        # try ping the datalogger
-        for i in xrange(20):
-            LOGGER.info('%d'%(i))
-            try:
-                if self.ping_node():
-                    self.connected = True
-                    break
-            except NoDeviceException:
-                self.pakbus.link.close()
-                self.pakbus.link.open()
-        if not self.connected:
-            raise NoDeviceException()
 
     @classmethod
     def from_url(cls, url, timeout=10, dest_addr=None, dest=0x001,
@@ -85,9 +79,7 @@ class CR1000(object):
     def ping_node(self):
         '''Check if remote host is available.'''
         # send hello command and wait for response packet
-        hdr, msg, send_time = self.send_wait(self.pakbus.get_hello_cmd())
-        if not (hdr and msg):
-            raise NoDeviceException()
+        # This is null as it does not necessarily work if dest is behind a router
         return True
 
     def gettime(self):
@@ -307,3 +299,4 @@ class CR1000(object):
     def __del__(self):
         '''Send bye cmd when object is deleted.'''
         self.bye()
+        self.pakbus.link.close()
