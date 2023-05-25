@@ -169,7 +169,7 @@ def main():
                                      description='Communication tools for '
                                                  'Campbell CR1000-type '
                                                  'Datalogger',
-                                     formatter_class=formatter_class)
+                                     formatter_class=formatter_class, exit_on_error=False)
 
     parser.add_argument('--version', action='version',
                         version='PyCR1000 version %s' % VERSION,
@@ -239,7 +239,7 @@ def main():
     subparser.add_argument('table', action="store",
                            help="The table name used for data collection")
     subparser.add_argument('output', action='store',
-                           type=argparse.FileType('w', 0),
+                           type=argparse.FileType('w'),
                            help='Filename where output is written')
     subparser.add_argument('--start', help='The beginning datetime record '
                                            '(like : "%s")' % NOW)
@@ -261,7 +261,7 @@ def main():
 
     # Parse argv arguments
     args = parser.parse_args()
-
+    
     if args.debug:
         active_logger()
         device = CR1000.from_url(args.url, args.timeout, args.dest_addr, args.dest,
