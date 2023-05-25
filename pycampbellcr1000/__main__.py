@@ -169,7 +169,7 @@ def main():
                                      description='Communication tools for '
                                                  'Campbell CR1000-type '
                                                  'Datalogger',
-                                     formatter_class=formatter_class, exit_on_error=False)
+                                     formatter_class=formatter_class)
 
     parser.add_argument('--version', action='version',
                         version='PyCR1000 version %s' % VERSION,
